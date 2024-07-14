@@ -1,10 +1,4 @@
 use std::io;
-// use std::io::{/* ErrorKind */ };
-//use std::io::prelude::*;
-//use std::fs::File;
-//use std::error::Error;
-
-//use std::io::{self, Read};
 
 fn main() -> io::Result<()> {
     let mut input = String::new();
@@ -45,5 +39,6 @@ pub fn plan(arg: &str) -> io::Result<()> {
 
 pub fn push() -> io::Result<()> {
     // read commit file, push it
+    println!("Ahh, push it");
     Ok(())
 }
