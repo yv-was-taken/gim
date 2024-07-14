@@ -1,7 +1,7 @@
 # Gim
 ###  commit driven development git-cli command line utility 
 
-gim functionality consists of the commands below:
+#### gim functionality consists of the commands below:
 
 - **gim plan**
   - Accepts a string as an argument for the message. If no string is provided, it opens the default editor.
