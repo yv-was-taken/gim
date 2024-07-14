@@ -33,12 +33,13 @@ fn main() -> io::Result<()> {
 }
 
 pub fn plan(arg: &str) -> io::Result<()> {
+    // @TODO write input arg as commit message, to repo-specific filename
     println!("your plan is: {arg}");
     Ok(())
 }
 
 pub fn push() -> io::Result<()> {
-    // read commit file, push it
+    // @TODO read commit file, push it
     println!("Ahh, push it");
     Ok(())
 }
