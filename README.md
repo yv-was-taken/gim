@@ -1,7 +1,5 @@
 # Gim
-##  commit driven development git-cli command line utility 
-
---------------------------
+###  commit driven development git-cli command line utility 
 
 gim functionality consists of the commands below:
 
