@@ -35,31 +35,26 @@ fn main() -> io::Result<()> {
                 }
             }
             "push" => push(),
-            "status" => {
-                let message = get_message()?;
-                println!("current commit message: {}", message);
-                Command::new("git")
-                    .arg("status")
-                    .spawn()
-                    .expect("user should have git installed");
-                Ok(())
-            }
+            "status" => display_status(),
             _ => Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
                 format!("Unrecognized command: {}", command_input),
             )),
         }
     } else {
-        let message = get_message()?;
-        println!("current commit message: {}", message);
-        Command::new("git")
-            .arg("status")
-            .spawn()
-            .expect("user should have git installed");
-        Ok(())
+        display_status()
     }
 }
 
+pub fn display_status() -> io::Result<()> {
+    let message = get_message()?;
+    println!("current commit message: {}", message);
+    Command::new("git")
+        .arg("status")
+        .spawn()
+        .expect("user should have git installed");
+    Ok(())
+}
 pub fn set_message(message: &str) -> io::Result<()> {
     let mut env_vars: HashMap<String, String> = match dotenv_iter() {
         Ok(dot) => dot.filter_map(Result::ok).collect(),
