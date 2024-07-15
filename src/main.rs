@@ -92,7 +92,7 @@ pub fn push() -> io::Result<()> {
         .arg("-m")
         .arg(wrap_in_quotes(&commit_message))
         .spawn()
-        .expect("this command should have executed, but something went wrong. are you sure you set the commit message and have git installed?.");
+        .expect("this command should have executed, but something went wrong. are you sure you set the commit message and have git installed?");
 
     println!("Ahh, push it");
     Ok(())
