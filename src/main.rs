@@ -47,8 +47,10 @@ fn main() -> io::Result<()> {
 }
 
 pub fn display_status() -> io::Result<()> {
-    let message = get_message()?;
-    println!("current commit message: {}", message);
+    match get_message() {
+        Ok(message) => println!("current commit message: {}", message),
+        Err(_) => println!("no current commit message. "),
+    };
     Command::new("git")
         .arg("status")
         .spawn()
@@ -97,7 +99,15 @@ pub fn get_message() -> Result<String, io::Error> {
             for line in content.lines().filter(|line| !line.is_empty()) {
                 if let Some((key, value)) = line.split_once('=') {
                     if key == "COMMIT_MESSAGE" {
-                        return Ok(String::from(value));
+                        let message = String::from(value);
+                        if !message.is_empty() {
+                            return Ok(message);
+                        } else {
+                            return Err(io::Error::new(
+                                io::ErrorKind::Other,
+                                "No COMMIT_MESSAGE found",
+                            ));
+                        }
                     }
                 }
             }
