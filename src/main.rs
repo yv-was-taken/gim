@@ -148,7 +148,7 @@ pub fn push() -> io::Result<()> {
     let commit = Command::new("git")
         .arg("commit")
         .arg("-m")
-        .arg(wrap_in_quotes(&commit_message))
+        .arg(&commit_message)
         .status()
         .expect("gim should be able to call git commit and commit message should be populated");
 
@@ -163,8 +163,4 @@ pub fn push() -> io::Result<()> {
 
     clear_message()?;
     Ok(())
-}
-
-fn wrap_in_quotes(input: &str) -> String {
-    format!("\"{}\"", input)
 }
