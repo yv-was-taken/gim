@@ -76,7 +76,7 @@ pub fn get_plan() -> Result<String, io::Error> {
                 "No COMMIT_MESSAGE found",
             ))
         }
-        Err(err) => Err(err),
+        Err(err) => Err(io::Error::new(io::ErrorKind::Other, err)),
     }
 }
 
