@@ -28,7 +28,7 @@ fn main() -> io::Result<()> {
         match &*command_input.trim() {
             "set" => {
                 if let Some(argument) = arg {
-                    set_message(&wrap_in_quotes(&argument))
+                    set_message(&argument)
                 } else {
                     Err(io::Error::new(
                         io::ErrorKind::InvalidInput,
