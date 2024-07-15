@@ -36,14 +36,20 @@ fn main() -> io::Result<()> {
             }
         }
         Some("push") => push(),
+        Some("status") | None => {
+            let message = get_message()?;
+            let status_output = Command::new("git")
+                .arg("status")
+                .output()
+                .expect("user should have git installed");
+            println!("current commit message: {:}", message);
+            println!("{:?}", status_output);
+            Ok(())
+        }
         Some(_) => Err(io::Error::new(
             io::ErrorKind::InvalidInput,
             "Unrecognized command",
         )),
-        None => {
-            println!("standard git status type thing here");
-            Ok(())
-        }
     }
 }
 
