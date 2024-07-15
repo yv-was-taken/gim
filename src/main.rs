@@ -1,3 +1,5 @@
+use dotenv;
+use std::fs::{read_to_string, write};
 use std::io;
 use std::process::Command;
 use std::str::FromStr;
@@ -22,7 +24,7 @@ fn main() -> io::Result<()> {
     match command_input {
         Some("plan") => {
             if let Some(argument) = arg {
-                plan(&argument)
+                set_plan(&argument)
             } else {
                 Err(io::Error::new(
                     io::ErrorKind::InvalidInput,
@@ -52,27 +54,45 @@ fn extract_quoted_string(input: &str) -> Option<String> {
     }
 }
 
-pub fn plan(arg: &str) -> io::Result<()> {
+pub fn set_plan(arg: &str) -> io::Result<()> {
     // @TODO write input arg as commit message, to `.env`
 
     println!("your plan is: {}", arg);
     Ok(())
 }
 
-pub fn get_plan() -> String {
-    //@TODO fetch plan message from .env
-    String::from("Plan goes here")
+pub fn get_plan() -> Result<String, io::Error> {
+    match read_to_string(".env") {
+        Ok(content) => {
+            for line in content.lines().filter(|line| !line.is_empty()) {
+                if let Some((key, value)) = line.split_once('=') {
+                    if key == "COMMIT_MESSAGE" {
+                        return Ok(String::from(value));
+                    }
+                }
+            }
+            Err(io::Error::new(
+                io::ErrorKind::Other,
+                "No COMMIT_MESSAGE found",
+            ))
+        }
+        Err(err) => Err(err),
+    }
+}
+
+fn wrap_in_quotes(input: &str) -> String {
+    format!("\"{}\"", input)
 }
 
 pub fn push() -> io::Result<()> {
-    // @TODO read commit file, push it
+    let commit_message = get_plan()?;
     Command::new("git")
         .arg("add")
         .arg(".")
         .arg("&&")
         .arg("commit")
         .arg("-m")
-        .arg(get_plan())
+        .arg(wrap_in_quotes(&commit_message))
         .spawn()
         .expect("this command should have executed, but something went wrong. are you sure you set the commit message and have git installed?.");
 
