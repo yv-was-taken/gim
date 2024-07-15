@@ -5,51 +5,62 @@ use std::fs::read_to_string;
 use std::io;
 use std::io::Write;
 use std::process::Command;
-use std::str::FromStr;
 
 fn main() -> io::Result<()> {
-    let mut input = String::new();
-    io::stdin().read_line(&mut input)?;
+    // Fetch command line arguments
+    let args: Vec<String> = std::env::args().collect();
 
-    let mut input_iter = input.split_whitespace();
-    let command_input = input_iter.next();
-    let rest_of_input = input_iter.collect::<Vec<&str>>().join(" ");
+    if let Some(command_input) = args.get(1) {
+        let arg = if args.len() > 2 {
+            let msg = Some(args[2..].join(" "));
 
-    let arg = extract_quoted_string(&rest_of_input);
+            if msg.is_none() {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidInput,
+                    format!(" Invalid message format. {}", args[2..].join(" ")),
+                ));
+            };
+            msg
+        } else {
+            None
+        };
 
-    if command_input.is_none() || (arg.is_none() && rest_of_input != "") {
-        return Err(io::Error::new(
-            io::ErrorKind::InvalidInput,
-            "Invalid input format!",
-        ));
-    }
-
-    match command_input {
-        Some("set") => {
-            if let Some(argument) = arg {
-                set_message(&argument)
-            } else {
-                Err(io::Error::new(
-                    io::ErrorKind::InvalidInput,
-                    "Argument is missing or invalid!",
-                ))
+        match &*command_input.trim() {
+            "set" => {
+                if let Some(argument) = arg {
+                    set_message(&wrap_in_quotes(&argument))
+                } else {
+                    Err(io::Error::new(
+                        io::ErrorKind::InvalidInput,
+                        "Argument is missing or invalid!",
+                    ))
+                }
             }
-        }
-        Some("push") => push(),
-        Some("status") | None => {
-            let message = get_message()?;
+            "push" => push(),
+            "status" => {
+                let message = get_message()?;
 
-            println!("current commit message: {:}", message);
-            Command::new("git")
-                .arg("status")
-                .spawn()
-                .expect("user should have git installed");
-            Ok(())
+                println!("current commit message: {:}", message);
+                Command::new("git")
+                    .arg("status")
+                    .spawn()
+                    .expect("user should have git installed");
+                Ok(())
+            }
+            _ => Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!("Unrecognized command: {}", command_input),
+            )),
         }
-        Some(_) => Err(io::Error::new(
-            io::ErrorKind::InvalidInput,
-            "Unrecognized command",
-        )),
+    } else {
+        let message = get_message()?;
+
+        println!("current commit message: {:}", message);
+        Command::new("git")
+            .arg("status")
+            .spawn()
+            .expect("user should have git installed");
+        Ok(())
     }
 }
 
@@ -108,6 +119,21 @@ pub fn get_message() -> Result<String, io::Error> {
     }
 }
 
+fn clear_message() -> io::Result<()> {
+    let mut env_vars: HashMap<String, String> = match dotenv_iter() {
+        Ok(dot) => dot.filter_map(Result::ok).collect(),
+        Err(_) => HashMap::new(),
+    };
+    //write commit message to .env
+    env_vars.insert(String::from("COMMIT_MESSAGE"), String::new());
+
+    let mut file = fs::File::create(".env")?;
+    for (k, v) in &env_vars {
+        writeln!(file, "{}={}", k, v)?;
+    }
+    Ok(())
+}
+
 pub fn push() -> io::Result<()> {
     let commit_message = get_message()?;
 
@@ -135,20 +161,10 @@ pub fn push() -> io::Result<()> {
 
     assert!(push.success());
 
-    set_message("")?;
+    clear_message()?;
     Ok(())
 }
 
 fn wrap_in_quotes(input: &str) -> String {
     format!("\"{}\"", input)
-}
-
-fn extract_quoted_string(input: &str) -> Option<String> {
-    if input.starts_with('"') && input.ends_with('"') {
-        Some(String::from_str(&input[1..input.len() - 1]).unwrap())
-    } else if input.starts_with('\'') && input.ends_with('\'') {
-        Some(String::from_str(&input[1..input.len() - 1]).unwrap())
-    } else {
-        None
-    }
 }
