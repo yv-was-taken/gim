@@ -1,6 +1,9 @@
-use dotenv;
-use std::fs::{read_to_string, write};
+use dotenvy::dotenv_iter;
+use std::collections::HashMap;
+use std::fs;
+use std::fs::read_to_string;
 use std::io;
+use std::io::Write;
 use std::process::Command;
 use std::str::FromStr;
 
@@ -22,9 +25,9 @@ fn main() -> io::Result<()> {
     }
 
     match command_input {
-        Some("plan") => {
+        Some("set") => {
             if let Some(argument) = arg {
-                set_plan(&argument)
+                set_message(&argument)
             } else {
                 Err(io::Error::new(
                     io::ErrorKind::InvalidInput,
@@ -44,24 +47,23 @@ fn main() -> io::Result<()> {
     }
 }
 
-fn extract_quoted_string(input: &str) -> Option<String> {
-    if input.starts_with('"') && input.ends_with('"') {
-        Some(String::from_str(&input[1..input.len() - 1]).unwrap())
-    } else if input.starts_with('\'') && input.ends_with('\'') {
-        Some(String::from_str(&input[1..input.len() - 1]).unwrap())
-    } else {
-        None
+pub fn set_message(message: &str) -> io::Result<()> {
+    let mut env_vars: HashMap<String, String> = match dotenv_iter() {
+        Ok(dot) => dot.filter_map(Result::ok).collect(),
+        Err(_) => HashMap::new(),
+    };
+
+    env_vars.insert(String::from("COMMIT_MESSAGE"), message.to_string());
+
+    let mut file = fs::File::create(".env")?;
+    for (k, v) in &env_vars {
+        writeln!(file, "{}={}", k, v)?;
     }
-}
 
-pub fn set_plan(arg: &str) -> io::Result<()> {
-    // @TODO write input arg as commit message, to `.env`
-
-    println!("your plan is: {}", arg);
     Ok(())
 }
 
-pub fn get_plan() -> Result<String, io::Error> {
+pub fn get_message() -> Result<String, io::Error> {
     match read_to_string(".env") {
         Ok(content) => {
             for line in content.lines().filter(|line| !line.is_empty()) {
@@ -80,12 +82,8 @@ pub fn get_plan() -> Result<String, io::Error> {
     }
 }
 
-fn wrap_in_quotes(input: &str) -> String {
-    format!("\"{}\"", input)
-}
-
 pub fn push() -> io::Result<()> {
-    let commit_message = get_plan()?;
+    let commit_message = get_message()?;
     Command::new("git")
         .arg("add")
         .arg(".")
@@ -98,4 +96,18 @@ pub fn push() -> io::Result<()> {
 
     println!("Ahh, push it");
     Ok(())
+}
+
+fn wrap_in_quotes(input: &str) -> String {
+    format!("\"{}\"", input)
+}
+
+fn extract_quoted_string(input: &str) -> Option<String> {
+    if input.starts_with('"') && input.ends_with('"') {
+        Some(String::from_str(&input[1..input.len() - 1]).unwrap())
+    } else if input.starts_with('\'') && input.ends_with('\'') {
+        Some(String::from_str(&input[1..input.len() - 1]).unwrap())
+    } else {
+        None
+    }
 }

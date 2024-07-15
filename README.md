@@ -5,8 +5,9 @@
 
 #### gim functionality consists of the commands below:
 
-- **gim plan**
-  - Accepts a string as an argument for the message. If no string is provided, it opens the default editor.
+- **gim set**
+  - Accepts a string as an argument for the commit message. 
+  If no string is provided, it opens the default editor. (<- todo)
   - The commit message file is stored inside the `.env` file inside the directory, inside the `COMMIT_MESSAGE` variable.
    
 - **gim push**
