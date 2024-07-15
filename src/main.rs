@@ -38,12 +38,12 @@ fn main() -> io::Result<()> {
         Some("push") => push(),
         Some("status") | None => {
             let message = get_message()?;
-            let status_output = Command::new("git")
-                .arg("status")
-                .output()
-                .expect("user should have git installed");
+
             println!("current commit message: {:}", message);
-            println!("{:?}", status_output);
+            Command::new("git")
+                .arg("status")
+                .spawn()
+                .expect("user should have git installed");
             Ok(())
         }
         Some(_) => Err(io::Error::new(
@@ -58,12 +58,32 @@ pub fn set_message(message: &str) -> io::Result<()> {
         Ok(dot) => dot.filter_map(Result::ok).collect(),
         Err(_) => HashMap::new(),
     };
-
+    //write commit message to .env
     env_vars.insert(String::from("COMMIT_MESSAGE"), message.to_string());
 
     let mut file = fs::File::create(".env")?;
     for (k, v) in &env_vars {
         writeln!(file, "{}={}", k, v)?;
+    }
+    //add .env to .gitignore if not already there
+    match read_to_string(".gitignore") {
+        Ok(content) => {
+            let mut does_gitignore_contain_dotenv = false;
+            for line in content.lines().filter(|line| !line.is_empty()) {
+                if line == ".env" {
+                    does_gitignore_contain_dotenv = true;
+                }
+            }
+            if !does_gitignore_contain_dotenv {
+                let mut file = fs::File::create(".gitignore")?;
+                writeln!(file, "{}", content)?;
+                writeln!(file, ".env")?;
+            }
+        }
+        Err(_) => {
+            let mut file = fs::File::create(".gitignore")?;
+            writeln!(file, ".env")?;
+        }
     }
 
     Ok(())
@@ -90,17 +110,32 @@ pub fn get_message() -> Result<String, io::Error> {
 
 pub fn push() -> io::Result<()> {
     let commit_message = get_message()?;
-    Command::new("git")
+
+    let add = Command::new("git")
         .arg("add")
         .arg(".")
-        .arg("&&")
+        .status()
+        .expect("command should be able to call git add");
+
+    assert!(add.success());
+
+    let commit = Command::new("git")
         .arg("commit")
         .arg("-m")
         .arg(wrap_in_quotes(&commit_message))
-        .spawn()
-        .expect("this command should have executed, but something went wrong. are you sure you set the commit message and have git installed?");
+        .status()
+        .expect("gim should be able to call git commit and commit message should be populated");
 
-    println!("Ahh, push it");
+    assert!(commit.success());
+
+    let push = Command::new("git")
+        .arg("push")
+        .status()
+        .expect("gim should be able to call git push");
+
+    assert!(push.success());
+
+    set_message("")?;
     Ok(())
 }
 
