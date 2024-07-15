@@ -7,7 +7,6 @@ use std::io::Write;
 use std::process::Command;
 
 fn main() -> io::Result<()> {
-    // Fetch command line arguments
     let args: Vec<String> = std::env::args().collect();
 
     if let Some(command_input) = args.get(1) {
@@ -69,14 +68,14 @@ pub fn set_message(message: &str) -> io::Result<()> {
         Ok(dot) => dot.filter_map(Result::ok).collect(),
         Err(_) => HashMap::new(),
     };
-    //write commit message to .env
+
     env_vars.insert(String::from("COMMIT_MESSAGE"), message.to_string());
 
     let mut file = fs::File::create(".env")?;
     for (k, v) in &env_vars {
         writeln!(file, "{}={}", k, v)?;
     }
-    //add .env to .gitignore if not already there
+
     match read_to_string(".gitignore") {
         Ok(content) => {
             let mut does_gitignore_contain_dotenv = false;
@@ -124,7 +123,6 @@ fn clear_message() -> io::Result<()> {
         Ok(dot) => dot.filter_map(Result::ok).collect(),
         Err(_) => HashMap::new(),
     };
-    //write commit message to .env
     env_vars.insert(String::from("COMMIT_MESSAGE"), String::new());
 
     let mut file = fs::File::create(".env")?;
