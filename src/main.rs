@@ -12,13 +12,12 @@ fn main() -> io::Result<()> {
     if let Some(command_input) = args.get(1) {
         let arg = if args.len() > 2 {
             let msg = Some(args[2..].join(" "));
-
             if msg.is_none() {
-                return Err(std::io::Error::new(
-                    std::io::ErrorKind::InvalidInput,
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
                     format!(" Invalid message format. {}", args[2..].join(" ")),
                 ));
-            };
+            }
             msg
         } else {
             None
@@ -38,8 +37,7 @@ fn main() -> io::Result<()> {
             "push" => push(),
             "status" => {
                 let message = get_message()?;
-
-                println!("current commit message: {:}", message);
+                println!("current commit message: {}", message);
                 Command::new("git")
                     .arg("status")
                     .spawn()
@@ -53,8 +51,7 @@ fn main() -> io::Result<()> {
         }
     } else {
         let message = get_message()?;
-
-        println!("current commit message: {:}", message);
+        println!("current commit message: {}", message);
         Command::new("git")
             .arg("status")
             .spawn()
@@ -140,7 +137,6 @@ pub fn push() -> io::Result<()> {
         .arg(".")
         .status()
         .expect("command should be able to call git add");
-
     assert!(add.success());
 
     let commit = Command::new("git")
@@ -149,14 +145,12 @@ pub fn push() -> io::Result<()> {
         .arg(&commit_message)
         .status()
         .expect("gim should be able to call git commit and commit message should be populated");
-
     assert!(commit.success());
 
     let push = Command::new("git")
         .arg("push")
         .status()
         .expect("gim should be able to call git push");
-
     assert!(push.success());
 
     clear_message()?;
