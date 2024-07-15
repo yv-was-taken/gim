@@ -1,7 +1,14 @@
 [package]
 name = "gim"
+description = "commit driven development git-cli command line utility"
 version = "0.1.0"
 edition = "2021"
+repository = "https://github.com/yv-was-taken/gim"
+author = "yv <yvmail@proton.me>"
+keywords = ["git", "commit driven development", "command line", "utility"]
+categories = ["development-tools"]
+license = "MIT"
+readme = "README.md"
 
 [dependencies]
 dotenvy = "0.15.7"
