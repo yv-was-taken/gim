@@ -1,4 +1,5 @@
 use std::io;
+use std::process::Command;
 use std::str::FromStr;
 
 fn main() -> io::Result<()> {
@@ -6,19 +7,19 @@ fn main() -> io::Result<()> {
     io::stdin().read_line(&mut input)?;
 
     let mut input_iter = input.split_whitespace();
-    let command = input_iter.next();
+    let command_input = input_iter.next();
     let rest_of_input = input_iter.collect::<Vec<&str>>().join(" ");
 
     let arg = extract_quoted_string(&rest_of_input);
 
-    if command.is_none() || (arg.is_none() && rest_of_input != "") {
+    if command_input.is_none() || (arg.is_none() && rest_of_input != "") {
         return Err(io::Error::new(
             io::ErrorKind::InvalidInput,
             "Invalid input format!",
         ));
     }
 
-    match command {
+    match command_input {
         Some("plan") => {
             if let Some(argument) = arg {
                 plan(&argument)
@@ -52,13 +53,29 @@ fn extract_quoted_string(input: &str) -> Option<String> {
 }
 
 pub fn plan(arg: &str) -> io::Result<()> {
-    // @TODO write input arg as commit message, to repo-specific filename
+    // @TODO write input arg as commit message, to `.env`
+
     println!("your plan is: {}", arg);
     Ok(())
 }
 
+pub fn get_plan() -> String {
+    //@TODO fetch plan message from .env
+    String::from("Plan goes here")
+}
+
 pub fn push() -> io::Result<()> {
     // @TODO read commit file, push it
+    Command::new("git")
+        .arg("add")
+        .arg(".")
+        .arg("&&")
+        .arg("commit")
+        .arg("-m")
+        .arg(get_plan())
+        .spawn()
+        .expect("this command should have executed, but something went wrong. are you sure you set the commit message and have git installed?.");
+
     println!("Ahh, push it");
     Ok(())
 }
