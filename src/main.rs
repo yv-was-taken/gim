@@ -89,6 +89,7 @@ pub fn set_message(message: &str) -> io::Result<()> {
             writeln!(file, ".env")?;
         }
     }
+    println!("planned commit message set: {:?}", String::from(message));
 
     Ok(())
 }
