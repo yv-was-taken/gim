@@ -1,14 +1,14 @@
 # Gim
-###  commit driven development git-cli command line utility 
+##  commit driven development git-cli command line utility 
 
 ------------------------------------------------ 
 
-#### Installlation
+### Installlation
 - Make sure you have [git](https://git-scm.com/book/en/v2/Getting-Started-Installing-Git) and [rust](https://www.rust-lang.org/tools/install) installed.
 - `cargo install gim`
 - that's it!
 
-#### gim functionality consists of the commands below:
+### gim functionality consists of the commands below:
 
 - **gim set**
   - Accepts a string as an argument for the commit message. 
