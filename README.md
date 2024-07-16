@@ -19,7 +19,7 @@
 
 - Accepts a string argument for the planned commit message.
 - The commit message is stored inside the `.env` file within the `COMMIT_MESSAGE` variable.
-    > note: don't need to worry about adding a .env file yourself, (or adding it to .gitignore), gim takes care of that for you! 
+    > **Note**: Don't worry about adding a `.env` file yourself (or adding it to `.gitignore`), `gim` takes care of that for you!
 
 #### `gim push`
 
