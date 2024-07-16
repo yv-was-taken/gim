@@ -48,8 +48,8 @@ fn main() -> io::Result<()> {
 
 pub fn display_status() -> io::Result<()> {
     match get_message() {
-        Ok(message) => println!("current commit message: {}", message),
-        Err(_) => println!("no current commit message. "),
+        Ok(message) => println!("planned commit message: {}", message),
+        Err(_) => println!("no planned commit message. "),
     };
     Command::new("git")
         .arg("status")

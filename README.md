@@ -17,15 +17,15 @@
 
 #### `gim set {COMMIT_MESSAGE}`
 
-- Accepts a string argument for the pre-planned commit message.
+- Accepts a string argument for the planned commit message.
 - The commit message is stored inside the `.env` file within the `COMMIT_MESSAGE` variable.
 
 #### `gim push`
 
 - Equivalent to `git add . && git commit -m $COMMIT_MESSAGE && git push`.
-- Allows optional inclusion of files after push, similar to `git add $FILE`. Defaults to `.`.
+- Allows optional inclusion of files after push, similar to `git add $FILE`. Defaults to `.`
 - Upon a successful push, the `COMMIT_MESSAGE` variable inside `.env` is cleared.
 
-#### `gim status`
+#### `gim status` or just `gim`
 
-- Displays the current `gim` plan at the top of the normal `git status` output.
+- Displays the current `gim` planned commit message at the top of the normal `git status` output.
