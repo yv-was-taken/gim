@@ -1,7 +1,7 @@
 [package]
 name = "gim"
 description = "commit driven development git-cli command line utility"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 repository = "https://github.com/yv-was-taken/gim"
 keywords = ["git", "terminal", "CLI", "utility"]
