@@ -34,7 +34,7 @@ fn main() -> io::Result<()> {
                     ))
                 }
             }
-            "push" => push(),
+            "push" => push(arg),
             "status" => display_status(),
             _ => Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
@@ -134,12 +134,16 @@ fn clear_message() -> io::Result<()> {
     Ok(())
 }
 
-pub fn push() -> io::Result<()> {
+pub fn push(contents: Option<String>) -> io::Result<()> {
     let commit_message = get_message()?;
 
+    let files_to_push = match contents {
+        Some(x) => x,
+        None => String::from("."),
+    };
     let add = Command::new("git")
         .arg("add")
-        .arg(".")
+        .arg(files_to_push.as_str())
         .status()
         .expect("command should be able to call git add");
     assert!(add.success());
