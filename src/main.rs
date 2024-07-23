@@ -269,30 +269,24 @@ pub fn push(contents: Option<String>) -> io::Result<()> {
         }
     };
 
-    match Command::new("git").arg("push").status() {
-        Ok(_) => (),
-        Err(err) => {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                format!("failed to push files with err: {:#?}", err),
-            ))
-        }
-    };
-
-    let should_clear_commit_message =
-        if commit_command_output.contains("nothing to commit, working tree clean") {
-            false
-        } else {
-            true
+    if !commit_command_output.contains("nothing to commit, working tree clean") {
+        match Command::new("git").arg("push").status() {
+            Ok(_) => (),
+            Err(err) => {
+                return Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    format!("failed to push files with err: {:#?}", err),
+                ))
+            }
         };
-
-    if should_clear_commit_message {
         match clear_message() {
             Ok(_) => Ok(()),
-            Err(err) => Err(io::Error::new(
-                io::ErrorKind::Other,
-                format!("failed to clear commit message with err: {:#?}", err),
-            )),
+            Err(err) => {
+                return Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    format!("failed to clear commit message with err: {:#?}", err),
+                ))
+            }
         }
     } else {
         Ok(())
