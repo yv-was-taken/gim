@@ -48,8 +48,8 @@ fn main() -> io::Result<()> {
 
 pub fn display_status() -> io::Result<()> {
     match get_message() {
-        Ok(message) => println!("planned commit message: {:?}", message),
-        Err(_) => println!("no planned commit message. "),
+        Ok(message) => println!("commit message: {:?}", message),
+        Err(_) => println!("no commit message set."),
     };
     match Command::new("git").arg("status").spawn() {
         Ok(_) => Ok(()),
@@ -147,7 +147,7 @@ pub fn set_message(message: &str) -> io::Result<()> {
             };
         }
     };
-    println!("planned commit message set: {:?}", String::from(message));
+    println!("commit message set: {:?}", String::from(message));
 
     Ok(())
 }
