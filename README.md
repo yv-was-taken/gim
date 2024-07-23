@@ -1,7 +1,7 @@
 # Gim
 
-![Crates.io License](https://img.shields.io/crates/l/gim)
-![Crates.io Version](https://img.shields.io/crates/v/gim)
+[![Crates.io License](https://img.shields.io/crates/l/gim)] (https://opensource.org/licenses/MIT)
+[![Crates.io Version](https://img.shields.io/crates/v/gim)] (https://crates.io/crates/gim)
 
 Commit Driven Development Git-CLI Command Line Utility
 
