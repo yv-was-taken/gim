@@ -250,7 +250,10 @@ pub fn push(contents: Option<String>) -> io::Result<()> {
         .output()
     {
         Ok(console_output) => match String::from_utf8(console_output.stdout) {
-            Ok(output) => output,
+            Ok(output) => {
+                println!("{output}");
+                output
+            }
             Err(err) => {
                 return Err(io::Error::new(
                     io::ErrorKind::Other,
