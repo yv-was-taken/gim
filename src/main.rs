@@ -243,13 +243,21 @@ pub fn push(contents: Option<String>) -> io::Result<()> {
         }
     };
 
-    match Command::new("git")
+    let commit_command_output = match Command::new("git")
         .arg("commit")
         .arg("-m")
         .arg(&commit_message)
-        .status()
+        .output()
     {
-        Ok(_) => (),
+        Ok(console_output) => match String::from_utf8(console_output.stdout) {
+            Ok(output) => output,
+            Err(err) => {
+                return Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    format!("failed to parse commit stdout with err: {:#?}", err),
+                ))
+            }
+        },
         Err(err) => {
             return Err(io::Error::new(
                 io::ErrorKind::Other,
@@ -268,13 +276,22 @@ pub fn push(contents: Option<String>) -> io::Result<()> {
         }
     };
 
-    match clear_message() {
-        Ok(_) => Ok(()),
-        Err(err) => {
-            return Err(io::Error::new(
+    let should_clear_commit_message =
+        if commit_command_output.contains("nothing to commit, working tree clean") {
+            false
+        } else {
+            true
+        };
+
+    if should_clear_commit_message {
+        match clear_message() {
+            Ok(_) => Ok(()),
+            Err(err) => Err(io::Error::new(
                 io::ErrorKind::Other,
                 format!("failed to clear commit message with err: {:#?}", err),
-            ))
+            )),
         }
+    } else {
+        Ok(())
     }
 }
