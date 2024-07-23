@@ -279,8 +279,6 @@ pub fn push(contents: Option<String>) -> io::Result<()> {
                 ))
             }
         }
-    } else {
-        ()
     };
 
     match Command::new("git").arg("push").status() {
