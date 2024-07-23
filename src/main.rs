@@ -65,9 +65,25 @@ pub fn set_message(message: &str) -> io::Result<()> {
 
     env_vars.insert(String::from("COMMIT_MESSAGE"), message.to_string());
 
-    let mut file = fs::File::create(".env")?;
+    let mut file = match fs::File::create(".env") {
+        Ok(file) => file,
+        Err(err) => {
+            return Err(io::Error::new(
+                io::ErrorKind::Other,
+                format!("failed to create .env with err: {:#?}", err),
+            ))
+        }
+    };
     for (k, v) in &env_vars {
-        writeln!(file, "{}={}", k, v)?;
+        match writeln!(file, "{}={}", k, v) {
+            Ok(_) => (),
+            Err(err) => {
+                return Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    format!("failed to write to .env with err: {:#?}", err),
+                ))
+            }
+        };
     }
 
     match read_to_string(".gitignore") {
@@ -79,14 +95,54 @@ pub fn set_message(message: &str) -> io::Result<()> {
                 }
             }
             if !does_gitignore_contain_dotenv {
-                let mut file = fs::File::create(".gitignore")?;
-                writeln!(file, "{}", content)?;
-                writeln!(file, ".env")?;
+                let mut file = match fs::File::create(".gitignore") {
+                    Ok(file) => file,
+                    Err(err) => {
+                        return Err(io::Error::new(
+                            io::ErrorKind::Other,
+                            format!("failed to create .gitignore with err: {:#?}", err),
+                        ))
+                    }
+                };
+                match writeln!(file, "{}", content) {
+                    Ok(_) => (),
+                    Err(err) => {
+                        return Err(io::Error::new(
+                            io::ErrorKind::Other,
+                            format!("failed to write to .gitignore with err: {:#?}", err),
+                        ))
+                    }
+                };
+                match writeln!(file, ".env") {
+                    Ok(_) => (),
+                    Err(err) => {
+                        return Err(io::Error::new(
+                            io::ErrorKind::Other,
+                            format!("failed to write to .gitignore with err: {:#?}", err),
+                        ))
+                    }
+                };
             }
         }
         Err(_) => {
-            let mut file = fs::File::create(".gitignore")?;
-            writeln!(file, ".env")?;
+            let mut file = match fs::File::create(".gitignore") {
+                Ok(file) => file,
+                Err(err) => {
+                    return Err(io::Error::new(
+                        io::ErrorKind::Other,
+                        format!("failed to create .gitignore with err: {:#?}", err),
+                    ))
+                }
+            };
+            match writeln!(file, ".env") {
+                Ok(_) => (),
+                Err(err) => {
+                    return Err(io::Error::new(
+                        io::ErrorKind::Other,
+                        format!("failed to create .env with err: {:#?}", err),
+                    ))
+                }
+            };
         }
     }
     println!("planned commit message set: {:?}", String::from(message));
@@ -117,7 +173,12 @@ pub fn get_message() -> Result<String, io::Error> {
                 "No COMMIT_MESSAGE found",
             ))
         }
-        Err(err) => Err(io::Error::new(io::ErrorKind::Other, err)),
+        Err(err) => {
+            return Err(io::Error::new(
+                io::ErrorKind::Other,
+                format!("failed to read .env with err: {:#?}", err),
+            ))
+        }
     }
 }
 
@@ -128,15 +189,39 @@ fn clear_message() -> io::Result<()> {
     };
     env_vars.insert(String::from("COMMIT_MESSAGE"), String::new());
 
-    let mut file = fs::File::create(".env")?;
+    let mut file = match fs::File::create(".env") {
+        Ok(file) => file,
+        Err(err) => {
+            return Err(io::Error::new(
+                io::ErrorKind::Other,
+                format!("failed to create .env with err: {:#?}", err),
+            ))
+        }
+    };
     for (k, v) in &env_vars {
-        writeln!(file, "{}={}", k, v)?;
+        match writeln!(file, "{}={}", k, v) {
+            Ok(()) => (),
+            Err(err) => {
+                return Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    format!("failed to write to .env with err: {:#?}", err),
+                ))
+            }
+        };
     }
     Ok(())
 }
 
 pub fn push(contents: Option<String>) -> io::Result<()> {
-    let commit_message = get_message()?;
+    let commit_message = match get_message() {
+        Ok(message) => message,
+        Err(err) => {
+            return Err(io::Error::new(
+                io::ErrorKind::Other,
+                format!("failed to fetch commit message with err: {:#?}", err),
+            ))
+        }
+    };
 
     let files_to_push = match contents {
         Some(x) => x,
@@ -163,6 +248,13 @@ pub fn push(contents: Option<String>) -> io::Result<()> {
         .expect("gim should be able to call git push");
     assert!(push.success());
 
-    clear_message()?;
-    Ok(())
+    match clear_message() {
+        Ok(_) => Ok(()),
+        Err(err) => {
+            return Err(io::Error::new(
+                io::ErrorKind::Other,
+                format!("failed to clear commit message with err: {:#?}", err),
+            ))
+        }
+    }
 }
