@@ -51,11 +51,13 @@ pub fn display_status() -> io::Result<()> {
         Ok(message) => println!("planned commit message: {:?}", message),
         Err(_) => println!("no planned commit message. "),
     };
-    Command::new("git")
-        .arg("status")
-        .spawn()
-        .expect("user should have git installed");
-    Ok(())
+    match Command::new("git").arg("status").spawn() {
+        Ok(_) => Ok(()),
+        Err(err) => Err(io::Error::new(
+            io::ErrorKind::Other,
+            format!("failed to retrieve status with err: {:#?}", err),
+        )),
+    }
 }
 pub fn set_message(message: &str) -> io::Result<()> {
     let mut env_vars: HashMap<String, String> = match dotenv_iter() {
@@ -144,7 +146,7 @@ pub fn set_message(message: &str) -> io::Result<()> {
                 }
             };
         }
-    }
+    };
     println!("planned commit message set: {:?}", String::from(message));
 
     Ok(())
@@ -227,26 +229,44 @@ pub fn push(contents: Option<String>) -> io::Result<()> {
         Some(x) => x,
         None => String::from("."),
     };
-    let add = Command::new("git")
+    match Command::new("git")
         .arg("add")
         .arg(files_to_push.as_str())
         .status()
-        .expect("command should be able to call git add");
-    assert!(add.success());
+    {
+        Ok(_) => (),
+        Err(err) => {
+            return Err(io::Error::new(
+                io::ErrorKind::Other,
+                format!("failed to add files with err: {:#?}", err),
+            ))
+        }
+    };
 
-    let commit = Command::new("git")
+    match Command::new("git")
         .arg("commit")
         .arg("-m")
         .arg(&commit_message)
         .status()
-        .expect("gim should be able to call git commit and commit message should be populated");
-    assert!(commit.success());
+    {
+        Ok(_) => (),
+        Err(err) => {
+            return Err(io::Error::new(
+                io::ErrorKind::Other,
+                format!("failed to commit files with err: {:#?}", err),
+            ))
+        }
+    };
 
-    let push = Command::new("git")
-        .arg("push")
-        .status()
-        .expect("gim should be able to call git push");
-    assert!(push.success());
+    match Command::new("git").arg("push").status() {
+        Ok(_) => (),
+        Err(err) => {
+            return Err(io::Error::new(
+                io::ErrorKind::Other,
+                format!("failed to push files with err: {:#?}", err),
+            ))
+        }
+    };
 
     match clear_message() {
         Ok(_) => Ok(()),
