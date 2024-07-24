@@ -148,9 +148,7 @@ pub fn set_message(message: &str) -> io::Result<()> {
             };
         }
     };
-    if !message.is_empty() {
-        println!("commit message set: {:?}", String::from(message));
-    }
+    println!("commit message set: {:?}", String::from(message));
 
     Ok(())
 }
@@ -296,7 +294,7 @@ pub fn push(contents: Option<String>) -> io::Result<()> {
 }
 
 pub fn clear() -> io::Result<()> {
-    match set_message("") {
+    match clear_message() {
         Ok(_) => println!("{}", String::from("commit message cleared.")),
         Err(err) => {
             return Err(io::Error::new(
