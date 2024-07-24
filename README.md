@@ -31,3 +31,7 @@ Commit Driven Development Git-CLI Command Line Utility
 ### `gim status` or just `gim`
 
 - Displays the current `gim` planned commit message at the top of the normal `git status` output.
+
+### `gim clear`
+
+- Clears the stored commit message.
