@@ -11,58 +11,56 @@ fn main() -> io::Result<()> {
 
     if let Some(command_input) = args.get(1) {
         let arg = if args.len() > 2 {
-            let msg = Some(args[2..].join(" "));
-            if msg.is_none() {
-                return Err(io::Error::new(
-                    io::ErrorKind::InvalidInput,
-                    format!(" Invalid message format. {}", args[2..].join(" ")),
-                ));
-            }
-            msg
+            Some(args[2..].join(" "))
         } else {
             None
         };
 
-        match &*command_input.trim() {
-            "set" => {
-                if let Some(argument) = arg {
-                    set_message(&argument)
-                } else {
-                    Err(io::Error::new(
-                        io::ErrorKind::InvalidInput,
-                        "Argument is missing or invalid!",
-                    ))
-                }
-            }
-            "push" => push(arg),
-            "status" => display_status(),
-            "clear" => clear(),
-            _ => Err(io::Error::new(
-                io::ErrorKind::InvalidInput,
-                format!("Unrecognized command: {}", command_input),
-            )),
-        }
+        parse_user_input(command_input, arg)
     } else {
         display_status()
     }
 }
 
-pub fn display_status() -> io::Result<()> {
+fn parse_user_input(command_input: &String, arg: Option<String>) -> Result<(), io::Error> {
+    match &*command_input.trim() {
+        "set" => {
+            if let Some(argument) = arg {
+                set_message(&argument)
+            } else {
+                Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    "No commit message provided.",
+                ))
+            }
+        }
+        "push" => push(arg),
+        "status" => display_status(),
+        "clear" => clear(),
+        _ => Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            format!("Unrecognized command: {}", command_input),
+        )),
+    }
+}
+
+fn display_status() -> io::Result<()> {
     match get_message() {
-        Ok(message) => println!("commit message: {:?}", message),
-        Err(_) => println!("no commit message set."),
+        Ok(message) => println!("Commit message: {:?}", message),
+        Err(_) => println!("No commit message set."),
     };
     match Command::new("git").arg("status").spawn() {
         Ok(_) => Ok(()),
         Err(err) => Err(io::Error::new(
             io::ErrorKind::Other,
-            format!("failed to retrieve status with err: {:#?}", err),
+            format!("Failed to retrieve status with err: {:#?}", err),
         )),
     }
 }
-pub fn set_message(message: &str) -> io::Result<()> {
+
+fn set_message(message: &str) -> io::Result<()> {
     let mut env_vars: HashMap<String, String> = match dotenv_iter() {
-        Ok(dot) => dot.filter_map(Result::ok).collect(),
+        Ok(env) => env.filter_map(Result::ok).collect(),
         Err(_) => HashMap::new(),
     };
 
@@ -73,7 +71,7 @@ pub fn set_message(message: &str) -> io::Result<()> {
         Err(err) => {
             return Err(io::Error::new(
                 io::ErrorKind::Other,
-                format!("failed to create .env with err: {:#?}", err),
+                format!("Failed to create .env with err: {:#?}", err),
             ))
         }
     };
@@ -83,7 +81,7 @@ pub fn set_message(message: &str) -> io::Result<()> {
             Err(err) => {
                 return Err(io::Error::new(
                     io::ErrorKind::Other,
-                    format!("failed to write to .env with err: {:#?}", err),
+                    format!("Failed to write to .env with err: {:#?}", err),
                 ))
             }
         };
@@ -103,7 +101,7 @@ pub fn set_message(message: &str) -> io::Result<()> {
                     Err(err) => {
                         return Err(io::Error::new(
                             io::ErrorKind::Other,
-                            format!("failed to create .gitignore with err: {:#?}", err),
+                            format!("Failed to create .gitignore with err: {:#?}", err),
                         ))
                     }
                 };
@@ -112,7 +110,7 @@ pub fn set_message(message: &str) -> io::Result<()> {
                     Err(err) => {
                         return Err(io::Error::new(
                             io::ErrorKind::Other,
-                            format!("failed to write to .gitignore with err: {:#?}", err),
+                            format!("Failed to write to .gitignore with err: {:#?}", err),
                         ))
                     }
                 };
@@ -121,7 +119,7 @@ pub fn set_message(message: &str) -> io::Result<()> {
                     Err(err) => {
                         return Err(io::Error::new(
                             io::ErrorKind::Other,
-                            format!("failed to write to .gitignore with err: {:#?}", err),
+                            format!("Failed to write to .gitignore with err: {:#?}", err),
                         ))
                     }
                 };
@@ -133,7 +131,7 @@ pub fn set_message(message: &str) -> io::Result<()> {
                 Err(err) => {
                     return Err(io::Error::new(
                         io::ErrorKind::Other,
-                        format!("failed to create .gitignore with err: {:#?}", err),
+                        format!("Failed to create .gitignore with err: {:#?}", err),
                     ))
                 }
             };
@@ -142,18 +140,18 @@ pub fn set_message(message: &str) -> io::Result<()> {
                 Err(err) => {
                     return Err(io::Error::new(
                         io::ErrorKind::Other,
-                        format!("failed to create .env with err: {:#?}", err),
+                        format!("Failed to create .env with err: {:#?}", err),
                     ))
                 }
             };
         }
     };
-    println!("commit message set: {:?}", String::from(message));
+    println!("Commit message set: {:?}", String::from(message));
 
     Ok(())
 }
 
-pub fn get_message() -> Result<String, io::Error> {
+fn get_message() -> Result<String, io::Error> {
     match read_to_string(".env") {
         Ok(content) => {
             for line in content.lines().filter(|line| !line.is_empty()) {
@@ -179,7 +177,7 @@ pub fn get_message() -> Result<String, io::Error> {
         Err(err) => {
             return Err(io::Error::new(
                 io::ErrorKind::Other,
-                format!("failed to read .env with err: {:#?}", err),
+                format!("Failed to read .env with err: {:#?}", err),
             ))
         }
     }
@@ -197,7 +195,7 @@ fn clear_message() -> io::Result<()> {
         Err(err) => {
             return Err(io::Error::new(
                 io::ErrorKind::Other,
-                format!("failed to create .env with err: {:#?}", err),
+                format!("Failed to create .env with err: {:#?}", err),
             ))
         }
     };
@@ -207,7 +205,7 @@ fn clear_message() -> io::Result<()> {
             Err(err) => {
                 return Err(io::Error::new(
                     io::ErrorKind::Other,
-                    format!("failed to write to .env with err: {:#?}", err),
+                    format!("Failed to write to .env with err: {:#?}", err),
                 ))
             }
         };
@@ -215,13 +213,13 @@ fn clear_message() -> io::Result<()> {
     Ok(())
 }
 
-pub fn push(contents: Option<String>) -> io::Result<()> {
+fn push(contents: Option<String>) -> io::Result<()> {
     let commit_message = match get_message() {
         Ok(message) => message,
         Err(err) => {
             return Err(io::Error::new(
                 io::ErrorKind::Other,
-                format!("failed to fetch commit message with err: {:#?}", err),
+                format!("Failed to fetch commit message with err: {:#?}", err),
             ))
         }
     };
@@ -239,7 +237,7 @@ pub fn push(contents: Option<String>) -> io::Result<()> {
         Err(err) => {
             return Err(io::Error::new(
                 io::ErrorKind::Other,
-                format!("failed to add files with err: {:#?}", err),
+                format!("Failed to add files with err: {:#?}", err),
             ))
         }
     };
@@ -258,14 +256,14 @@ pub fn push(contents: Option<String>) -> io::Result<()> {
             Err(err) => {
                 return Err(io::Error::new(
                     io::ErrorKind::Other,
-                    format!("failed to parse commit stdout with err: {:#?}", err),
+                    format!("Failed to parse commit stdout with err: {:#?}", err),
                 ))
             }
         },
         Err(err) => {
             return Err(io::Error::new(
                 io::ErrorKind::Other,
-                format!("failed to commit files with err: {:#?}", err),
+                format!("Failed to commit changes with err: {:#?}", err),
             ))
         }
     };
@@ -276,7 +274,7 @@ pub fn push(contents: Option<String>) -> io::Result<()> {
             Err(err) => {
                 return Err(io::Error::new(
                     io::ErrorKind::Other,
-                    format!("failed to clear commit message with err: {:#?}", err),
+                    format!("Failed to clear commit message with err: {:#?}", err),
                 ))
             }
         }
@@ -287,19 +285,19 @@ pub fn push(contents: Option<String>) -> io::Result<()> {
         Err(err) => {
             return Err(io::Error::new(
                 io::ErrorKind::Other,
-                format!("failed to push files with err: {:#?}", err),
+                format!("Failed to push changes with err: {:#?}", err),
             ))
         }
     }
 }
 
-pub fn clear() -> io::Result<()> {
+fn clear() -> io::Result<()> {
     match clear_message() {
-        Ok(_) => println!("{}", String::from("commit message cleared.")),
+        Ok(_) => println!("{}", String::from("Commit message cleared.")),
         Err(err) => {
             return Err(io::Error::new(
                 io::ErrorKind::Other,
-                format!("failed to clear commit message with err: {:#?}", err),
+                format!("Failed to clear commit message with err: {:#?}", err),
             ))
         }
     };
