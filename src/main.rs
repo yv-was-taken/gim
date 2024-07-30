@@ -34,7 +34,14 @@ fn parse_user_input(command_input: &String, arg: Option<String>) -> Result<(), i
         }
         "push" => push(arg),
         "status" => display_status(),
-        "clear" => clear_message(),
+        "clear" => match clear_message() {
+            Ok(_) => {
+                println!("Commit message cleared.");
+                Ok(())
+            }
+            Err(err) => Err(err),
+        },
+
         "help" => help(),
         _ => Err(io::Error::new(
             io::ErrorKind::InvalidInput,
