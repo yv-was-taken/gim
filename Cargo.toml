@@ -11,3 +11,4 @@ readme = "README.md"
 
 [dependencies]
 dotenvy = "0.15.7"
+edit = "0.1.5"

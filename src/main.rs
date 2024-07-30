@@ -1,4 +1,5 @@
 use dotenvy::dotenv_iter;
+use edit::edit;
 use std::collections::HashMap;
 use std::fs;
 use std::fs::read_to_string;
@@ -28,15 +29,13 @@ fn parse_user_input(command_input: &String, arg: Option<String>) -> Result<(), i
             if let Some(argument) = arg {
                 set_message(&argument)
             } else {
-                Err(io::Error::new(
-                    io::ErrorKind::InvalidInput,
-                    "No commit message provided.",
-                ))
+                edit_message()
             }
         }
+        "edit" => edit_message(),
         "push" => push(arg),
         "status" => display_status(),
-        "clear" => clear(),
+        "clear" => clear_message(),
         _ => Err(io::Error::new(
             io::ErrorKind::InvalidInput,
             format!("Unrecognized command: {}", command_input),
@@ -151,6 +150,23 @@ fn set_message(message: &str) -> io::Result<()> {
     Ok(())
 }
 
+fn edit_message() -> io::Result<()> {
+    let current_commit_message = match get_message() {
+        Ok(message) => Some(message),
+        Err(_) => None,
+    };
+    match current_commit_message {
+        Some(message) => match edit(message) {
+            Ok(m) => set_message(&m.trim()),
+            Err(err) => Err(err),
+        },
+        None => match edit(" ") {
+            Ok(m) => set_message(&m.trim()),
+            Err(err) => return Err(err),
+        },
+    }
+}
+
 fn get_message() -> Result<String, io::Error> {
     match read_to_string(".env") {
         Ok(content) => {
@@ -216,12 +232,7 @@ fn clear_message() -> io::Result<()> {
 fn push(contents: Option<String>) -> io::Result<()> {
     let commit_message = match get_message() {
         Ok(message) => message,
-        Err(err) => {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                format!("Failed to fetch commit message with err: {:#?}", err),
-            ))
-        }
+        Err(err) => return Err(err),
     };
 
     let files_to_push = match contents {
@@ -271,12 +282,7 @@ fn push(contents: Option<String>) -> io::Result<()> {
     if !commit_command_output.contains("nothing to commit, working tree clean") {
         match clear_message() {
             Ok(_) => (),
-            Err(err) => {
-                return Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    format!("Failed to clear commit message with err: {:#?}", err),
-                ))
-            }
+            Err(err) => return Err(err),
         }
     };
 
@@ -289,17 +295,4 @@ fn push(contents: Option<String>) -> io::Result<()> {
             ))
         }
     }
-}
-
-fn clear() -> io::Result<()> {
-    match clear_message() {
-        Ok(_) => println!("{}", String::from("Commit message cleared.")),
-        Err(err) => {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                format!("Failed to clear commit message with err: {:#?}", err),
-            ))
-        }
-    };
-    Ok(())
 }
