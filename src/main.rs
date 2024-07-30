@@ -25,14 +25,13 @@ fn main() -> io::Result<()> {
 
 fn parse_user_input(command_input: &String, arg: Option<String>) -> Result<(), io::Error> {
     match &*command_input.trim() {
-        "set" => {
+        "set" | "edit" => {
             if let Some(argument) = arg {
                 set_message(&argument)
             } else {
                 edit_message()
             }
         }
-        "edit" => edit_message(),
         "push" => push(arg),
         "status" => display_status(),
         "clear" => clear_message(),
