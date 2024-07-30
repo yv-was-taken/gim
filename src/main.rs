@@ -36,6 +36,7 @@ fn parse_user_input(command_input: &String, arg: Option<String>) -> Result<(), i
         "push" => push(arg),
         "status" => display_status(),
         "clear" => clear_message(),
+        "help" => help(),
         _ => Err(io::Error::new(
             io::ErrorKind::InvalidInput,
             format!("Unrecognized command: {}", command_input),
@@ -295,4 +296,39 @@ fn push(contents: Option<String>) -> io::Result<()> {
             ))
         }
     }
+}
+
+fn help() -> io::Result<()> {
+    let help_message = r#"
+`gim` provides the following commands:
+
+### `gim set {COMMIT_MESSAGE}`
+
+- Accepts a string argument for the planned commit message.
+- The commit message is stored inside the `.env` file within the `COMMIT_MESSAGE` variable.
+    > **Note**: Don't worry about adding a `.env` file yourself (or adding it to `.gitignore`), `gim` takes care of that for you!
+
+### `gim edit`
+
+- Opens system default editor to edit current commit message
+
+### `gim push`
+
+- Equivalent to `git add . && git commit -m $COMMIT_MESSAGE && git push`.
+- Allows optional inclusion of files after push, similar to `git add $FILE`. Defaults to `.`
+- Upon a successful push, the `COMMIT_MESSAGE` variable inside `.env` is cleared.
+### `gim status` or just `gim`
+
+- Displays the current `gim` planned commit message at the top of the normal `git status` output.
+
+### `gim clear`
+
+- Clears the stored commit message.
+
+### `gim help`
+
+- Prints the current message to the console.
+"#;
+    println!("{help_message}");
+    Ok(())
 }

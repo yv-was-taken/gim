@@ -23,6 +23,10 @@ Commit Driven Development Git-CLI Command Line Utility
 - The commit message is stored inside the `.env` file within the `COMMIT_MESSAGE` variable.
     > **Note**: Don't worry about adding a `.env` file yourself (or adding it to `.gitignore`), `gim` takes care of that for you!
 
+### `gim edit`
+
+- Opens system default editor to edit current commit message
+
 ### `gim push`
 
 - Equivalent to `git add . && git commit -m $COMMIT_MESSAGE && git push`.
@@ -35,3 +39,7 @@ Commit Driven Development Git-CLI Command Line Utility
 ### `gim clear`
 
 - Clears the stored commit message.
+
+### `gim help`
+
+- Prints the current message to the console.
