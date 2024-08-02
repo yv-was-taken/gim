@@ -141,20 +141,22 @@ fn set_message(message: &str) -> io::Result<()> {
             };
         }
     };
-    print_formatted_message(String::from("Commit message set: "), String::from(message));
+    print_formatted_message(String::from("Commit message set:"), String::from(message));
 
     Ok(())
 }
 
 fn print_formatted_message(message_title: String, message: String) {
-    let underline_start = "\x1b[4m";
-    let underline_end = "\x1b[0m";
     let bold_text_start = "\x1b[1m";
-    let raw_message = format!(r#"{message}"#);
+    let indented_message: String = format!(r#"{message}"#)
+        .lines()
+        .map(|line| format!("{}{}", "    ", line))
+        .collect::<Vec<String>>()
+        .join("\n");
     let bold_text_end = "\x1b[0m";
 
-    println!("{}{}{}", underline_start, &message_title, underline_end);
-    println!("{}{}{}", bold_text_start, raw_message, bold_text_end);
+    println!("{}{}", "\n", &message_title);
+    println!("{}{}{}", bold_text_start, indented_message, bold_text_end);
     println!("\n");
 }
 
