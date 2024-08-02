@@ -20,8 +20,8 @@ Commit Driven Development Git-CLI Command Line Utility
 ### `gim set {COMMIT_MESSAGE}`
 
 - Accepts a string argument for the planned commit message.
-- The commit message is stored inside the `.env` file within the `COMMIT_MESSAGE` variable.
-    > **Note**: Don't worry about adding a `.env` file yourself (or adding it to `.gitignore`), `gim` takes care of that for you!
+- The commit message is stored inside the `.COMMIT_MESSAGE` file.
+    > **Note**: Don't worry about adding a `.COMMIT_MESSAGE` file yourself (or adding it to `.gitignore`), `gim` takes care of that for you!
 
 ### `gim edit`
 
@@ -31,7 +31,7 @@ Commit Driven Development Git-CLI Command Line Utility
 
 - Equivalent to `git add . && git commit -m $COMMIT_MESSAGE && git push`.
 - Allows optional inclusion of files after push, similar to `git add $FILE`. Defaults to `.`
-- Upon a successful push, the `COMMIT_MESSAGE` variable inside `.env` is cleared.
+- Upon a successful push, the `.COMMIT_MESSAGE` file is cleared.
 ### `gim status` or just `gim`
 
 - Displays the current `gim` planned commit message at the top of the normal `git status` output.
@@ -42,4 +42,4 @@ Commit Driven Development Git-CLI Command Line Utility
 
 ### `gim help`
 
-- Prints the contents of this file to the console.
+- Prints the command descriptions to the console.

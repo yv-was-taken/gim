@@ -1,6 +1,4 @@
-use dotenvy::dotenv_iter;
 use edit::edit;
-use std::collections::HashMap;
 use std::fs;
 use std::fs::read_to_string;
 use std::io;
@@ -52,7 +50,7 @@ fn parse_user_input(command_input: &String, arg: Option<String>) -> Result<(), i
 
 fn display_status() -> io::Result<()> {
     match get_message() {
-        Ok(message) => println!("Commit message: {:?}", message),
+        Ok(message) => print_formatted_message(String::from("Commit message: "), message),
         Err(_) => println!("No commit message set."),
     };
     match Command::new("git").arg("status").spawn() {
@@ -143,9 +141,21 @@ fn set_message(message: &str) -> io::Result<()> {
             };
         }
     };
-    println!("Commit message set: {:?}", String::from(message));
+    print_formatted_message(String::from("Commit message set: "), String::from(message));
 
     Ok(())
+}
+
+fn print_formatted_message(message_title: String, message: String) {
+    let underline_start = "\x1b[4m";
+    let underline_end = "\x1b[0m";
+    let bold_text_start = "\x1b[1m";
+    let raw_message = format!(r#"{message}"#);
+    let bold_text_end = "\x1b[0m";
+
+    println!("{}{}{}", underline_start, &message_title, underline_end);
+    println!("{}{}{}", bold_text_start, raw_message, bold_text_end);
+    println!("\n");
 }
 
 fn edit_message() -> io::Result<()> {
@@ -178,13 +188,7 @@ fn get_message() -> Result<String, io::Error> {
 }
 
 fn clear_message() -> io::Result<()> {
-    let mut env_vars: HashMap<String, String> = match dotenv_iter() {
-        Ok(dot) => dot.filter_map(Result::ok).collect(),
-        Err(_) => HashMap::new(),
-    };
-    env_vars.insert(String::from("COMMIT_MESSAGE"), String::new());
-
-    let mut file = match fs::File::create(".COMMIT_MESSAGE") {
+    match fs::File::create(".COMMIT_MESSAGE") {
         Ok(file) => file,
         Err(err) => {
             return Err(io::Error::new(
@@ -193,17 +197,6 @@ fn clear_message() -> io::Result<()> {
             ))
         }
     };
-    for (k, v) in &env_vars {
-        match writeln!(file, "{}={}", k, v) {
-            Ok(()) => (),
-            Err(err) => {
-                return Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    format!("Failed to write to .COMMIT_MESSAGE with err: {:#?}", err),
-                ))
-            }
-        };
-    }
     Ok(())
 }
 
@@ -296,8 +289,8 @@ fn help() -> io::Result<()> {
 ### `gim set {COMMIT_MESSAGE}`
 
 - Accepts a string argument for the planned commit message.
-- The commit message is stored inside the `.env` file within the `COMMIT_MESSAGE` variable.
-    > **Note**: Don't worry about adding a `.env` file yourself (or adding it to `.gitignore`), `gim` takes care of that for you!
+- The commit message is stored inside the `.COMMIT_MESSAGE` file.
+    > **Note**: Don't worry about adding a `.COMMIT_MESSAGE` file yourself (or adding it to `.gitignore`), `gim` takes care of that for you!
 
 ### `gim edit`
 
@@ -307,7 +300,7 @@ fn help() -> io::Result<()> {
 
 - Equivalent to `git add . && git commit -m $COMMIT_MESSAGE && git push`.
 - Allows optional inclusion of files after push, similar to `git add $FILE`. Defaults to `.`
-- Upon a successful push, the `COMMIT_MESSAGE` variable inside `.env` is cleared.
+- Upon a successful push, the `.COMMIT_MESSAGE` file is cleared.
 ### `gim status` or just `gim`
 
 - Displays the current `gim` planned commit message at the top of the normal `git status` output.
@@ -318,7 +311,7 @@ fn help() -> io::Result<()> {
 
 ### `gim help`
 
-- Prints the current message to the console.
+- Prints the command descriptions to the console.
 "#;
     println!("{help_message}");
     Ok(())
