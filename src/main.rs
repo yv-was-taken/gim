@@ -51,7 +51,7 @@ fn parse_user_input(command_input: &String, arg: Option<String>) -> Result<(), i
 fn display_status() -> io::Result<()> {
     match get_message() {
         Ok(message) => print_formatted_message(String::from("Commit message: "), message),
-        Err(_) => println!("\nNo commit message set."),
+        Err(_) => println!("No commit message set."),
     };
     match Command::new("git").arg("status").spawn() {
         Ok(_) => Ok(()),
@@ -141,7 +141,12 @@ fn set_message(message: &str) -> io::Result<()> {
             };
         }
     };
-    print_formatted_message(String::from("Commit message set:"), String::from(message));
+    let message_string = String::from(message);
+    if message_string.trim().is_empty() {
+        println!("Commit message was empty, aborted.");
+    } else {
+        print_formatted_message(String::from("Commit message set:"), String::from(message));
+    }
 
     Ok(())
 }
@@ -155,9 +160,8 @@ fn print_formatted_message(message_title: String, message: String) {
         .join("\n");
     let bold_text_end = "\x1b[0m";
 
-    println!("{}{}", "\n", &message_title);
+    println!("{}", &message_title);
     println!("{}{}{}", bold_text_start, indented_message, bold_text_end);
-    println!("\n");
 }
 
 fn edit_message() -> io::Result<()> {
@@ -179,7 +183,16 @@ fn edit_message() -> io::Result<()> {
 
 fn get_message() -> Result<String, io::Error> {
     match read_to_string(".COMMIT_MESSAGE") {
-        Ok(content) => Ok(content),
+        Ok(content) => {
+            if content.trim().is_empty() {
+                Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    "No commit message found",
+                ))
+            } else {
+                Ok(content)
+            }
+        }
         Err(err) => {
             return Err(io::Error::new(
                 io::ErrorKind::Other,
