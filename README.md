@@ -42,4 +42,4 @@ Commit Driven Development Git-CLI Command Line Utility
 
 ### `gim help`
 
-- Prints the current message to the console.
+- Prints the contents of this file to the console.

@@ -21,3 +21,5 @@ Cargo.lock
 #.idea/
 
 .env
+
+.COMMIT_MESSAGE

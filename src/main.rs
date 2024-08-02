@@ -65,43 +65,34 @@ fn display_status() -> io::Result<()> {
 }
 
 fn set_message(message: &str) -> io::Result<()> {
-    let mut env_vars: HashMap<String, String> = match dotenv_iter() {
-        Ok(env) => env.filter_map(Result::ok).collect(),
-        Err(_) => HashMap::new(),
-    };
-
-    env_vars.insert(String::from("COMMIT_MESSAGE"), message.to_string());
-
-    let mut file = match fs::File::create(".env") {
+    let mut file = match fs::File::create(".COMMIT_MESSAGE") {
         Ok(file) => file,
         Err(err) => {
             return Err(io::Error::new(
                 io::ErrorKind::Other,
-                format!("Failed to create .env with err: {:#?}", err),
+                format!("Failed to create .COMMIT_MESSAGE with err: {:#?}", err),
             ))
         }
     };
-    for (k, v) in &env_vars {
-        match writeln!(file, "{}={}", k, v) {
-            Ok(_) => (),
-            Err(err) => {
-                return Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    format!("Failed to write to .env with err: {:#?}", err),
-                ))
-            }
-        };
-    }
+    match write!(file, "{}", message) {
+        Ok(_) => (),
+        Err(err) => {
+            return Err(io::Error::new(
+                io::ErrorKind::Other,
+                format!("Failed to write to .COMMIT_MESSAGE with err: {:#?}", err),
+            ))
+        }
+    };
 
     match read_to_string(".gitignore") {
         Ok(content) => {
-            let mut does_gitignore_contain_dotenv = false;
+            let mut does_gitignore_contain_commit_message = false;
             for line in content.lines().filter(|line| !line.is_empty()) {
-                if line == ".env" {
-                    does_gitignore_contain_dotenv = true;
+                if line == ".COMMIT_MESSAGE" {
+                    does_gitignore_contain_commit_message = true;
                 }
             }
-            if !does_gitignore_contain_dotenv {
+            if !does_gitignore_contain_commit_message {
                 let mut file = match fs::File::create(".gitignore") {
                     Ok(file) => file,
                     Err(err) => {
@@ -120,7 +111,7 @@ fn set_message(message: &str) -> io::Result<()> {
                         ))
                     }
                 };
-                match writeln!(file, ".env") {
+                match writeln!(file, ".COMMIT_MESSAGE") {
                     Ok(_) => (),
                     Err(err) => {
                         return Err(io::Error::new(
@@ -141,7 +132,7 @@ fn set_message(message: &str) -> io::Result<()> {
                     ))
                 }
             };
-            match writeln!(file, ".env") {
+            match writeln!(file, ".COMMIT_MESSAGE") {
                 Ok(_) => (),
                 Err(err) => {
                     return Err(io::Error::new(
@@ -175,28 +166,8 @@ fn edit_message() -> io::Result<()> {
 }
 
 fn get_message() -> Result<String, io::Error> {
-    match read_to_string(".env") {
-        Ok(content) => {
-            for line in content.lines().filter(|line| !line.is_empty()) {
-                if let Some((key, value)) = line.split_once('=') {
-                    if key == "COMMIT_MESSAGE" {
-                        let message = String::from(value);
-                        if !message.is_empty() {
-                            return Ok(message);
-                        } else {
-                            return Err(io::Error::new(
-                                io::ErrorKind::Other,
-                                "No COMMIT_MESSAGE found",
-                            ));
-                        }
-                    }
-                }
-            }
-            Err(io::Error::new(
-                io::ErrorKind::Other,
-                "No COMMIT_MESSAGE found",
-            ))
-        }
+    match read_to_string(".COMMIT_MESSAGE") {
+        Ok(content) => Ok(content),
         Err(err) => {
             return Err(io::Error::new(
                 io::ErrorKind::Other,
@@ -213,12 +184,12 @@ fn clear_message() -> io::Result<()> {
     };
     env_vars.insert(String::from("COMMIT_MESSAGE"), String::new());
 
-    let mut file = match fs::File::create(".env") {
+    let mut file = match fs::File::create(".COMMIT_MESSAGE") {
         Ok(file) => file,
         Err(err) => {
             return Err(io::Error::new(
                 io::ErrorKind::Other,
-                format!("Failed to create .env with err: {:#?}", err),
+                format!("Failed to create .COMMIT_MESSAGE with err: {:#?}", err),
             ))
         }
     };
@@ -228,7 +199,7 @@ fn clear_message() -> io::Result<()> {
             Err(err) => {
                 return Err(io::Error::new(
                     io::ErrorKind::Other,
-                    format!("Failed to write to .env with err: {:#?}", err),
+                    format!("Failed to write to .COMMIT_MESSAGE with err: {:#?}", err),
                 ))
             }
         };
