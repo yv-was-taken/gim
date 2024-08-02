@@ -260,12 +260,26 @@ fn push(contents: Option<String>) -> io::Result<()> {
         }
     };
 
-    let commit_command_output = match Command::new("git")
-        .arg("commit")
-        .arg("-m")
-        .arg(&commit_message)
-        .output()
-    {
+    let mut commit_message_header_and_body = commit_message.split("\n").into_iter();
+
+    //can unwrap header since we know there is some text present, if empty, function would have returned err already and would have not been able to reach this far downstream.
+    let commit_message_header = commit_message_header_and_body.next().unwrap();
+    //cannot unwrap body as there may or may not be further text present.
+    let commit_message_body = commit_message_header_and_body
+        .collect::<Vec<&str>>()
+        .join("\n")
+        .to_string();
+
+    let mut commit_command_args = Vec::new();
+    commit_command_args.push("commit");
+    commit_command_args.push("-m");
+    commit_command_args.push(&commit_message_header);
+    if !commit_message_body.is_empty() {
+        commit_command_args.push("-m");
+        commit_command_args.push(&commit_message_body);
+    }
+
+    let commit_command_output = match Command::new("git").args(commit_command_args).output() {
         Ok(console_output) => match String::from_utf8(console_output.stdout) {
             Ok(output) => {
                 println!("{output}");
