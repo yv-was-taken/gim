@@ -51,7 +51,7 @@ fn parse_user_input(command_input: &String, arg: Option<String>) -> Result<(), i
 fn display_status() -> io::Result<()> {
     match get_message() {
         Ok(message) => print_formatted_message(String::from("Commit message: "), message),
-        Err(_) => println!("No commit message set."),
+        Err(_) => println!("\nNo commit message set."),
     };
     match Command::new("git").arg("status").spawn() {
         Ok(_) => Ok(()),
@@ -190,7 +190,7 @@ fn get_message() -> Result<String, io::Error> {
 }
 
 fn clear_message() -> io::Result<()> {
-    match fs::File::create(".COMMIT_MESSAGE") {
+    let mut file = match fs::File::create(".COMMIT_MESSAGE") {
         Ok(file) => file,
         Err(err) => {
             return Err(io::Error::new(
@@ -199,7 +199,10 @@ fn clear_message() -> io::Result<()> {
             ))
         }
     };
-    Ok(())
+    match write!(file, "") {
+        Ok(_) => Ok(()),
+        Err(err) => Err(err),
+    }
 }
 
 fn push(contents: Option<String>) -> io::Result<()> {
