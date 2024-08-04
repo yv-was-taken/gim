@@ -1,8 +1,10 @@
 use edit::edit;
 use std::fs;
 use std::fs::read_to_string;
+use std::fs::File;
 use std::io;
 use std::io::Write;
+use std::io::{BufRead, BufReader, Result};
 use std::process::Command;
 
 fn main() -> io::Result<()> {
@@ -21,7 +23,7 @@ fn main() -> io::Result<()> {
     }
 }
 
-fn parse_user_input(command_input: &String, arg: Option<String>) -> Result<(), io::Error> {
+fn parse_user_input(command_input: &String, arg: Option<String>) -> io::Result<()> {
     match &*command_input.trim() {
         "set" | "edit" => {
             if let Some(argument) = arg {
@@ -32,13 +34,23 @@ fn parse_user_input(command_input: &String, arg: Option<String>) -> Result<(), i
         }
         "push" => push(arg),
         "status" => display_status(),
-        "clear" => match clear_message() {
-            Ok(_) => {
-                println!("Commit message cleared.");
-                Ok(())
+        "clear" => {
+            let should_full_clear = match arg {
+                Some(_arg) => match &*_arg {
+                    "full" => true,
+                    _ => false,
+                },
+                None => false,
+            };
+
+            match clear_message(should_full_clear) {
+                Ok(_) => {
+                    println!("Commit message cleared.");
+                    Ok(())
+                }
+                Err(err) => Err(err),
             }
-            Err(err) => Err(err),
-        },
+        }
 
         "help" => help(),
         _ => Err(io::Error::new(
@@ -49,7 +61,7 @@ fn parse_user_input(command_input: &String, arg: Option<String>) -> Result<(), i
 }
 
 fn display_status() -> io::Result<()> {
-    match get_message() {
+    match get_message(false) {
         Ok(message) => print_formatted_message(String::from("Commit message: "), message),
         Err(_) => println!("No commit message set."),
     };
@@ -165,7 +177,7 @@ fn print_formatted_message(message_title: String, message: String) {
 }
 
 fn edit_message() -> io::Result<()> {
-    let current_commit_message = match get_message() {
+    let current_commit_message = match get_message(false) {
         Ok(message) => Some(message),
         Err(_) => None,
     };
@@ -181,45 +193,135 @@ fn edit_message() -> io::Result<()> {
     }
 }
 
-fn get_message() -> Result<String, io::Error> {
-    match read_to_string(".COMMIT_MESSAGE") {
-        Ok(content) => {
-            if content.trim().is_empty() {
-                Err(io::Error::new(
+fn get_message(is_push: bool) -> io::Result<String> {
+    if is_push {
+        match read_file_ignore_comments(".COMMIT_MESSAGE") {
+            Ok(content) => {
+                if content.trim().is_empty() {
+                    Err(io::Error::new(
+                        io::ErrorKind::Other,
+                        "No commit message found",
+                    ))
+                } else {
+                    Ok(content)
+                }
+            }
+            Err(err) => {
+                return Err(io::Error::new(
                     io::ErrorKind::Other,
-                    "No commit message found",
+                    format!("Failed to read .env with err: {:#?}", err),
                 ))
-            } else {
-                Ok(content)
             }
         }
-        Err(err) => {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                format!("Failed to read .env with err: {:#?}", err),
-            ))
+    } else {
+        match read_to_string(".COMMIT_MESSAGE") {
+            Ok(content) => {
+                if content.trim().is_empty() {
+                    Err(io::Error::new(
+                        io::ErrorKind::Other,
+                        "No commit message found",
+                    ))
+                } else {
+                    Ok(content)
+                }
+            }
+            Err(err) => {
+                return Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    format!("Failed to read .env with err: {:#?}", err),
+                ))
+            }
         }
     }
 }
 
-fn clear_message() -> io::Result<()> {
-    let mut file = match fs::File::create(".COMMIT_MESSAGE") {
-        Ok(file) => file,
-        Err(err) => {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                format!("Failed to create .COMMIT_MESSAGE with err: {:#?}", err),
-            ))
+fn clear_message(is_full_clear: bool) -> io::Result<()> {
+    if is_full_clear {
+        let mut file = match fs::File::create(".COMMIT_MESSAGE") {
+            Ok(file) => file,
+            Err(err) => {
+                return Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    format!("Failed to create .COMMIT_MESSAGE with err: {:#?}", err),
+                ))
+            }
+        };
+        match write!(file, "") {
+            Ok(_) => Ok(()),
+            Err(err) => Err(err),
         }
-    };
-    match write!(file, "") {
-        Ok(_) => Ok(()),
-        Err(err) => Err(err),
+    } else {
+        let comments = match read_file_extract_comments(".COMMIT_MESSAGE") {
+            Ok(file) => format!(r#"{file}"#),
+            Err(err) => {
+                return Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    format!("Failed to read .COMMIT_MESSAGE with err: {:#?}", err),
+                ))
+            }
+        };
+        let mut file = match fs::File::create(".COMMIT_MESSAGE") {
+            Ok(file) => file,
+            Err(err) => {
+                return Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    format!("Failed to create .COMMIT_MESSAGE with err: {:#?}", err),
+                ))
+            }
+        };
+        match write!(file, r#"{comments}"#) {
+            Ok(_) => Ok(()),
+            Err(err) => Err(err),
+        }
     }
+}
+
+fn read_file_ignore_comments(file_path: &str) -> Result<String> {
+    let file = match File::open(file_path) {
+        Ok(file) => file,
+        Err(err) => return Err(err),
+    };
+    let reader = BufReader::new(file);
+    let mut content = String::new();
+
+    for line in reader.lines() {
+        let line = match line {
+            Ok(text) => text,
+            Err(err) => return Err(err),
+        };
+        if !line.trim_start().starts_with('#') {
+            content.push_str(&line);
+            content.push('\n');
+        }
+    }
+
+    Ok(content)
+}
+
+fn read_file_extract_comments(file_path: &str) -> Result<String> {
+    let file = match File::open(file_path) {
+        Ok(file) => file,
+        Err(err) => return Err(err),
+    };
+    let reader = BufReader::new(file);
+    let mut content = String::new();
+
+    for line in reader.lines() {
+        let line = match line {
+            Ok(text) => text,
+            Err(err) => return Err(err),
+        };
+        if line.trim_start().starts_with('#') {
+            content.push_str(&line);
+            content.push('\n');
+        }
+    }
+
+    Ok(content)
 }
 
 fn push(contents: Option<String>) -> io::Result<()> {
-    let commit_message = match get_message() {
+    let commit_message = match get_message(true) {
         Ok(message) => message,
         Err(err) => return Err(err),
     };
@@ -283,7 +385,7 @@ fn push(contents: Option<String>) -> io::Result<()> {
     };
 
     if !commit_command_output.contains("nothing to commit, working tree clean") {
-        match clear_message() {
+        match clear_message(false) {
             Ok(_) => (),
             Err(err) => return Err(err),
         }
