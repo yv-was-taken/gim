@@ -45,7 +45,12 @@ fn parse_user_input(command_input: &String, arg: Option<String>) -> io::Result<(
 
             match clear_message(should_full_clear) {
                 Ok(_) => {
-                    println!("Commit message cleared.");
+                    if should_full_clear {
+                        println!("Commit message cleared fully.");
+                    } else {
+                        println!("Commit message cleared.");
+                    }
+
                     Ok(())
                 }
                 Err(err) => Err(err),
@@ -92,6 +97,11 @@ fn set_message(message: &str) -> io::Result<()> {
                 format!("Failed to write to .COMMIT_MESSAGE with err: {:#?}", err),
             ))
         }
+    };
+    //renaming for console log at the end of this function.
+    let message_to_log_to_console = match get_message(true) {
+        Ok(message) => message,
+        Err(err) => return Err(err),
     };
 
     match read_to_string(".gitignore") {
@@ -157,7 +167,10 @@ fn set_message(message: &str) -> io::Result<()> {
     if message_string.trim().is_empty() {
         println!("Commit message was empty, aborted.");
     } else {
-        print_formatted_message(String::from("Commit message set:"), String::from(message));
+        print_formatted_message(
+            String::from("Commit message set:"),
+            message_to_log_to_console,
+        );
     }
 
     Ok(())
@@ -183,11 +196,11 @@ fn edit_message() -> io::Result<()> {
     };
     match current_commit_message {
         Some(message) => match edit(message) {
-            Ok(m) => set_message(&m.trim()),
+            Ok(m) => set_message(&m),
             Err(err) => Err(err),
         },
         None => match edit(" ") {
-            Ok(m) => set_message(&m.trim()),
+            Ok(m) => set_message(&m),
             Err(err) => return Err(err),
         },
     }
@@ -249,10 +262,9 @@ fn clear_message(is_full_clear: bool) -> io::Result<()> {
         match write!(
             file,
             r#"
-# Please enter/edit the commit message for your changes.
+# Enter/edit the commit message for your changes.
 # Lines starting with '#' are considered comments, therefore are ignored, and will sustain through commits.
-# want to clear commented commit messages as well? --> `gim clear full`
-#"#
+"#
         ) {
             Ok(_) => Ok(()),
             Err(err) => Err(err),
@@ -435,6 +447,10 @@ fn help() -> io::Result<()> {
 ### `gim clear`
 
 - Clears the stored commit message.
+
+### `gim clear full`
+
+- Fully clears the stored commit message, comments included.
 
 ### `gim help`
 

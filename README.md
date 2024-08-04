@@ -40,6 +40,10 @@ Commit Driven Development Git-CLI Command Line Utility
 
 - Clears the stored commit message.
 
+### `gim clear full`
+
+- Fully clears the stored commit message, comments included.
+
 ### `gim help`
 
 - Prints the command descriptions to the console.
