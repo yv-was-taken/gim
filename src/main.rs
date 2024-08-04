@@ -61,7 +61,7 @@ fn parse_user_input(command_input: &String, arg: Option<String>) -> io::Result<(
 }
 
 fn display_status() -> io::Result<()> {
-    match get_message(false) {
+    match get_message(true) {
         Ok(message) => print_formatted_message(String::from("Commit message: "), message),
         Err(_) => println!("No commit message set."),
     };
@@ -193,8 +193,8 @@ fn edit_message() -> io::Result<()> {
     }
 }
 
-fn get_message(is_push: bool) -> io::Result<String> {
-    if is_push {
+fn get_message(ignore_comments: bool) -> io::Result<String> {
+    if ignore_comments {
         match read_file_ignore_comments(".COMMIT_MESSAGE") {
             Ok(content) => {
                 if content.trim().is_empty() {
@@ -246,7 +246,14 @@ fn clear_message(is_full_clear: bool) -> io::Result<()> {
                 ))
             }
         };
-        match write!(file, "") {
+        match write!(
+            file,
+            r#"
+# Please enter/edit the commit message for your changes.
+# Lines starting with '#' are considered comments, therefore are ignored, and will sustain through commits.
+# want to clear commented commit messages as well? --> `gim clear full`
+#"#
+        ) {
             Ok(_) => Ok(()),
             Err(err) => Err(err),
         }
