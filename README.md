@@ -30,8 +30,8 @@ Commit Driven Development Git-CLI Command Line Utility
 ### `gim push`
 
 - Equivalent to `git add . && git commit -m $COMMIT_MESSAGE && git push`.
-- Allows optional inclusion of files after push, similar to `git add $FILE`. Defaults to `.`
-- Upon a successful push, the `.COMMIT_MESSAGE` file is cleared.
+- Allows optional argument for inclusion of specific files, similar to `git add $FILES`.
+- Upon a successful push, the `.COMMIT_MESSAGE` file is cleared, excluding comments.
 ### `gim status` or just `gim`
 
 - Displays the current `gim` planned commit message at the top of the normal `git status` output.

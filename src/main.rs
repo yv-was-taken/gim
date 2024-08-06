@@ -102,7 +102,16 @@ fn set_message(message: &str) -> io::Result<()> {
             ))
         }
     };
-    match write!(file, "{}", message) {
+    let current_message = match get_message(false) {
+        Ok(file) => Some(file),
+        Err(_) => None,
+    };
+    let message_with_comments = match current_message {
+        Some(file) => String::from(message) + &file,
+        None => String::from(message),
+    };
+
+    match write!(file, "{}", message_with_comments) {
         Ok(_) => (),
         Err(err) => {
             return Err(io::Error::new(
@@ -263,7 +272,7 @@ fn get_message(ignore_comments: bool) -> io::Result<String> {
 
 fn clear_message(is_full_clear: bool) -> io::Result<()> {
     if is_full_clear {
-        let mut file = match fs::File::create(".COMMIT_MESSAGE") {
+        let file = match fs::File::create(".COMMIT_MESSAGE") {
             Ok(file) => file,
             Err(err) => {
                 return Err(io::Error::new(
@@ -272,16 +281,7 @@ fn clear_message(is_full_clear: bool) -> io::Result<()> {
                 ))
             }
         };
-        match write!(
-            file,
-            r#"
-# Enter/edit the commit message for your changes.
-# Lines starting with '#' are considered comments, therefore are ignored, and will sustain through commits.
-"#
-        ) {
-            Ok(_) => Ok(()),
-            Err(err) => Err(err),
-        }
+        inject_instruction_comment(file)
     } else {
         let comments = match read_file_extract_comments(".COMMIT_MESSAGE") {
             Ok(file) => format!(r#"{file}"#),
@@ -305,6 +305,20 @@ fn clear_message(is_full_clear: bool) -> io::Result<()> {
             Ok(_) => Ok(()),
             Err(err) => Err(err),
         }
+    }
+}
+
+fn inject_instruction_comment(file: File) -> std::prelude::v1::Result<(), io::Error> {
+    let mut file = file;
+    match write!(
+        file,
+        r#"
+# Enter/edit the commit message for your changes.
+# Lines starting with '#' are considered comments, therefore are ignored, and will sustain through commits.
+"#
+    ) {
+        Ok(_) => Ok(()),
+        Err(err) => Err(err),
     }
 }
 
@@ -451,8 +465,8 @@ fn help() -> io::Result<()> {
 ### `gim push`
 
 - Equivalent to `git add . && git commit -m $COMMIT_MESSAGE && git push`.
-- Allows optional inclusion of files after push, similar to `git add $FILE`. Defaults to `.`
-- Upon a successful push, the `.COMMIT_MESSAGE` file is cleared.
+- Allows optional argument for inclusion of specific files, similar to `git add $FILES`.
+- Upon a successful push, the `.COMMIT_MESSAGE` file is cleared, excluding comments.
 ### `gim status` or just `gim`
 
 - Displays the current `gim` planned commit message at the top of the normal `git status` output.
