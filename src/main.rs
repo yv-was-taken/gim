@@ -201,7 +201,7 @@ fn edit_message() -> io::Result<()> {
         },
         None => match edit(" ") {
             Ok(m) => set_message(&m),
-            Err(err) => return Err(err),
+            Err(err) => return Err(io::Error::new(io::ErrorKind::InvalidInput, err)),
         },
     }
 }
