@@ -26,6 +26,19 @@ fn main() -> io::Result<()> {
 fn parse_user_input(command_input: &String, arg: Option<String>) -> io::Result<()> {
     match &*command_input.trim() {
         "set" | "edit" => {
+            match get_message(false) {
+                Ok(_) => (),
+                //if empty, inject comment into .COMMIT_MESSAGE
+                Err(_) => match clear_message(true) {
+                    Ok(_) => (),
+                    Err(err) => {
+                        return Err(io::Error::new(
+                            io::ErrorKind::Other,
+                            format!("Failed to inject .COMMIT_MESSAGE with err: {:#?}", err),
+                        ))
+                    }
+                },
+            };
             if let Some(argument) = arg {
                 set_message(&argument)
             } else {
