@@ -51,7 +51,18 @@ fn parse_user_input(command_input: &String, arg: Option<String>) -> io::Result<(
         "edit" => edit_message(),
         "add" => {
             if let Some(argument) = arg {
-                set_message(&argument)
+                let current_message = match read_file_extract_message(".COMMIT_MESSAGE") {
+                    Ok(m) => Some(m),
+                    Err(_) => None,
+                };
+                match current_message {
+                    Some(current_message) => {
+                        let current_message_with_included_message =
+                            String::from(current_message) + &argument;
+                        set_message(&current_message_with_included_message)
+                    }
+                    None => set_message(&argument),
+                }
             } else {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidInput,
@@ -380,6 +391,28 @@ fn read_file_extract_comments(file_path: &str) -> Result<String> {
     Ok(content)
 }
 
+fn read_file_extract_message(file_path: &str) -> Result<String> {
+    let file = match File::open(file_path) {
+        Ok(file) => file,
+        Err(err) => return Err(err),
+    };
+    let reader = BufReader::new(file);
+    let mut content = String::new();
+
+    for line in reader.lines() {
+        let line = match line {
+            Ok(text) => text,
+            Err(err) => return Err(err),
+        };
+        if !line.trim_start().starts_with('#') {
+            content.push_str(&line);
+            content.push('\n');
+        }
+    }
+
+    Ok(content)
+}
+
 fn push(contents: Option<String>) -> io::Result<()> {
     let commit_message = match get_message(true) {
         Ok(message) => message,
@@ -471,10 +504,15 @@ fn help() -> io::Result<()> {
 - Accepts a string argument for the planned commit message.
 - The commit message is stored inside the `.COMMIT_MESSAGE` file.
     > **Note**: Don't worry about adding a `.COMMIT_MESSAGE` file yourself (or adding it to `.gitignore`), `gim` takes care of that for you!
+- replaces the current commit message
 
 ### `gim edit`
 
 - Opens system default editor to edit current commit message
+
+### `gim add {ADDED_MESSAGE}`
+
+- Appends the `ADDED_MESSAGE` to the current commit message. Used for multiline commits
 
 ### `gim push`
 

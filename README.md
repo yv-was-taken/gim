@@ -22,10 +22,15 @@ Commit Driven Development Git-CLI Command Line Utility
 - Accepts a string argument for the planned commit message.
 - The commit message is stored inside the `.COMMIT_MESSAGE` file.
     > **Note**: Don't worry about adding a `.COMMIT_MESSAGE` file yourself (or adding it to `.gitignore`), `gim` takes care of that for you!
+- replaces the current commit message
 
 ### `gim edit`
 
 - Opens system default editor to edit current commit message
+
+### `gim add {ADDED_MESSAGE}`
+
+- Appends the `ADDED_MESSAGE` to the current commit message. Used for multiline commits
 
 ### `gim push`
 
