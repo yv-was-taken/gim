@@ -26,47 +26,57 @@ fn main() -> io::Result<()> {
 fn parse_user_input(command_input: &String, arg: Option<String>) -> io::Result<()> {
     match &*command_input.trim() {
         "set" => {
-            match get_message(false) {
-                Ok(_) => (),
-                //if empty, inject comment into .COMMIT_MESSAGE
-                Err(_) => match clear_message(true) {
-                    Ok(_) => (),
-                    Err(err) => {
+            if let Some(argument) = arg {
+                match argument.trim().is_empty() {
+                    false => match set_message(&append_instruction_comment(&argument)) {
+                        Ok(_) => Ok(()),
+                        Err(err) => return Err(err),
+                    },
+                    true => {
                         return Err(io::Error::new(
-                            io::ErrorKind::Other,
-                            format!("Failed to inject .COMMIT_MESSAGE with err: {:#?}", err),
+                            io::ErrorKind::InvalidInput,
+                            "no message argument provided",
                         ))
                     }
-                },
-            };
-            if let Some(argument) = arg {
-                set_message(&argument)
+                }
             } else {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidInput,
-                    "no message provided",
+                    "no message argument provided",
                 ));
             }
         }
         "edit" => edit_message(),
         "add" => {
             if let Some(argument) = arg {
+                if argument.trim().is_empty() {
+                    return Err(io::Error::new(
+                        io::ErrorKind::InvalidInput,
+                        "no message argument provided",
+                    ));
+                };
                 let current_message = match read_file_extract_message(".COMMIT_MESSAGE") {
                     Ok(m) => Some(m),
                     Err(_) => None,
                 };
-                match current_message {
+                let current_message_with_included_message = match current_message {
                     Some(current_message) => {
-                        let current_message_with_included_message =
-                            String::from(current_message) + &argument;
-                        set_message(&current_message_with_included_message)
+                        String::from(current_message) + &argument
+                        //set_message(&current_message_with_included_message)
                     }
-                    None => set_message(&argument),
+                    None => argument, //set_message(&argument),
+                };
+                match set_message(&append_instruction_comment(
+                    &current_message_with_included_message,
+                )) {
+                    Ok(_) => Ok(()),
+                    Err(err) => return Err(err),
                 }
+            //               inject_instruction_comment()
             } else {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidInput,
-                    "no message provided",
+                    "no message argument provided",
                 ));
             }
         }
@@ -84,7 +94,7 @@ fn parse_user_input(command_input: &String, arg: Option<String>) -> io::Result<(
             match clear_message(should_full_clear) {
                 Ok(_) => {
                     if should_full_clear {
-                        println!("Commit message cleared fully.");
+                        println!("Commit message fully cleared.");
                     } else {
                         println!("Commit message cleared.");
                     }
@@ -117,7 +127,7 @@ fn display_status() -> io::Result<()> {
     }
 }
 
-fn set_message(message: &str) -> io::Result<()> {
+fn set_message(message_to_add: &str) -> io::Result<()> {
     let mut file = match fs::File::create(".COMMIT_MESSAGE") {
         Ok(file) => file,
         Err(err) => {
@@ -127,13 +137,21 @@ fn set_message(message: &str) -> io::Result<()> {
             ))
         }
     };
-    let current_message = match get_message(false) {
-        Ok(file) => Some(file),
+    let current_message = match read_file_extract_message(".COMMIT_MESSAGE") {
+        Ok(m) => Some(m),
         Err(_) => None,
     };
-    let message_with_comments = match current_message {
-        Some(file) => String::from(message) + &file,
-        None => String::from(message),
+    let current_message_comments = match read_file_extract_comments(".COMMIT_MESSAGE") {
+        Ok(m) => Some(m),
+        Err(_) => None,
+    };
+    let message_with_added_message = match current_message {
+        Some(m) => m + message_to_add,
+        None => String::from(message_to_add),
+    };
+    let message_with_comments = match current_message_comments {
+        Some(comments) => message_with_added_message + &comments,
+        None => message_with_added_message,
     };
 
     match write!(file, "{}", message_with_comments) {
@@ -147,8 +165,8 @@ fn set_message(message: &str) -> io::Result<()> {
     };
     //renaming for console log at the end of this function.
     let message_to_log_to_console = match get_message(true) {
-        Ok(message) => message,
-        Err(err) => return Err(err),
+        Ok(message) => Some(message),
+        Err(_) => None,
     };
 
     match read_to_string(".gitignore") {
@@ -210,14 +228,9 @@ fn set_message(message: &str) -> io::Result<()> {
             };
         }
     };
-    let message_string = String::from(message);
-    if message_string.trim().is_empty() {
-        println!("Commit message was empty, aborted.");
-    } else {
-        print_formatted_message(
-            String::from("Commit message set:"),
-            message_to_log_to_console,
-        );
+    match message_to_log_to_console {
+        Some(m) => print_formatted_message(String::from("Commit message set:"), m),
+        None => (),
     }
 
     Ok(())
@@ -242,12 +255,12 @@ fn edit_message() -> io::Result<()> {
         Err(_) => None,
     };
     match current_commit_message {
-        Some(message) => match edit(message) {
+        Some(message) => match edit(&message) {
             Ok(m) => set_message(&m),
             Err(err) => Err(err),
         },
         None => match edit(" ") {
-            Ok(m) => set_message(&m),
+            Ok(m) => set_message(&append_instruction_comment(&m)),
             Err(err) => return Err(io::Error::new(io::ErrorKind::InvalidInput, err)),
         },
     }
@@ -297,8 +310,8 @@ fn get_message(ignore_comments: bool) -> io::Result<String> {
 
 fn clear_message(is_full_clear: bool) -> io::Result<()> {
     if is_full_clear {
-        let file = match fs::File::create(".COMMIT_MESSAGE") {
-            Ok(file) => file,
+        match fs::File::create(".COMMIT_MESSAGE") {
+            Ok(_) => (),
             Err(err) => {
                 return Err(io::Error::new(
                     io::ErrorKind::Other,
@@ -306,7 +319,7 @@ fn clear_message(is_full_clear: bool) -> io::Result<()> {
                 ))
             }
         };
-        inject_instruction_comment(file)
+        set_message(&append_instruction_comment(""))
     } else {
         let comments = match read_file_extract_comments(".COMMIT_MESSAGE") {
             Ok(file) => format!(r#"{file}"#),
@@ -333,18 +346,13 @@ fn clear_message(is_full_clear: bool) -> io::Result<()> {
     }
 }
 
-fn inject_instruction_comment(file: File) -> std::prelude::v1::Result<(), io::Error> {
-    let mut file = file;
-    match write!(
-        file,
-        r#"
+fn append_instruction_comment(message: &str) -> String {
+    format!(
+        r#"{message}
 # Enter/edit the commit message for your changes.
 # Lines starting with '#' are considered comments, therefore are ignored, and will sustain through commits.
 "#
-    ) {
-        Ok(_) => Ok(()),
-        Err(err) => Err(err),
-    }
+    )
 }
 
 fn read_file_ignore_comments(file_path: &str) -> Result<String> {
