@@ -28,10 +28,20 @@ fn parse_user_input(command_input: &String, arg: Option<String>) -> io::Result<(
         "set" => {
             if let Some(argument) = arg {
                 match argument.trim().is_empty() {
-                    false => match set_message(&append_instruction_comment(&argument)) {
-                        Ok(_) => Ok(()),
-                        Err(err) => return Err(err),
-                    },
+                    false => {
+                        let user_added_comments =
+                            match read_file_extract_comments(".COMMIT_MESSAGE") {
+                                Ok(comments) => comments,
+                                Err(err) => return Err(err),
+                            };
+
+                        match set_message(&append_instruction_comment(
+                            &(argument + &user_added_comments),
+                        )) {
+                            Ok(_) => Ok(()),
+                            Err(err) => return Err(err),
+                        }
+                    }
                     true => {
                         return Err(io::Error::new(
                             io::ErrorKind::InvalidInput,
@@ -60,19 +70,20 @@ fn parse_user_input(command_input: &String, arg: Option<String>) -> io::Result<(
                     Err(_) => None,
                 };
                 let current_message_with_included_message = match current_message {
-                    Some(current_message) => {
-                        String::from(current_message) + &argument
-                        //set_message(&current_message_with_included_message)
-                    }
-                    None => argument, //set_message(&argument),
+                    Some(current_message) => String::from(current_message) + &argument,
+                    None => argument,
                 };
+                let current_message_with_included_message_and_comments =
+                    match read_file_extract_comments(".COMMIT_MESSAGE") {
+                        Ok(comments) => current_message_with_included_message + &comments,
+                        Err(_) => current_message_with_included_message,
+                    };
                 match set_message(&append_instruction_comment(
-                    &current_message_with_included_message,
+                    &current_message_with_included_message_and_comments,
                 )) {
                     Ok(_) => Ok(()),
                     Err(err) => return Err(err),
                 }
-            //               inject_instruction_comment()
             } else {
                 return Err(io::Error::new(
                     io::ErrorKind::InvalidInput,
@@ -127,7 +138,7 @@ fn display_status() -> io::Result<()> {
     }
 }
 
-fn set_message(message_to_add: &str) -> io::Result<()> {
+fn set_message(message_to_set: &str) -> io::Result<()> {
     let mut file = match fs::File::create(".COMMIT_MESSAGE") {
         Ok(file) => file,
         Err(err) => {
@@ -137,18 +148,22 @@ fn set_message(message_to_add: &str) -> io::Result<()> {
             ))
         }
     };
+
     let current_message = match read_file_extract_message(".COMMIT_MESSAGE") {
         Ok(m) => Some(m),
         Err(_) => None,
     };
+
+    let message_with_added_message = match current_message {
+        Some(m) => m + message_to_set,
+        None => String::from(message_to_set),
+    };
+
     let current_message_comments = match read_file_extract_comments(".COMMIT_MESSAGE") {
-        Ok(m) => Some(m),
+        Ok(comments) => Some(comments),
         Err(_) => None,
     };
-    let message_with_added_message = match current_message {
-        Some(m) => m + message_to_add,
-        None => String::from(message_to_add),
-    };
+
     let message_with_comments = match current_message_comments {
         Some(comments) => message_with_added_message + &comments,
         None => message_with_added_message,
@@ -162,11 +177,6 @@ fn set_message(message_to_add: &str) -> io::Result<()> {
                 format!("Failed to write to .COMMIT_MESSAGE with err: {:#?}", err),
             ))
         }
-    };
-    //renaming for console log at the end of this function.
-    let message_to_log_to_console = match get_message(true) {
-        Ok(message) => Some(message),
-        Err(_) => None,
     };
 
     match read_to_string(".gitignore") {
@@ -228,10 +238,11 @@ fn set_message(message_to_add: &str) -> io::Result<()> {
             };
         }
     };
-    match message_to_log_to_console {
-        Some(m) => print_formatted_message(String::from("Commit message set:"), m),
-        None => (),
-    }
+
+    match get_message(true) {
+        Ok(message) => print_formatted_message(String::from("Commit message set:"), message),
+        Err(_) => (),
+    };
 
     Ok(())
 }
@@ -268,7 +279,7 @@ fn edit_message() -> io::Result<()> {
 
 fn get_message(ignore_comments: bool) -> io::Result<String> {
     if ignore_comments {
-        match read_file_ignore_comments(".COMMIT_MESSAGE") {
+        match read_file_extract_message(".COMMIT_MESSAGE") {
             Ok(content) => {
                 if content.trim().is_empty() {
                     Err(io::Error::new(
@@ -322,7 +333,7 @@ fn clear_message(is_full_clear: bool) -> io::Result<()> {
         set_message(&append_instruction_comment(""))
     } else {
         let comments = match read_file_extract_comments(".COMMIT_MESSAGE") {
-            Ok(file) => format!(r#"{file}"#),
+            Ok(file) => &append_instruction_comment(&format!(r#"{file}"#)),
             Err(err) => {
                 return Err(io::Error::new(
                     io::ErrorKind::Other,
@@ -349,13 +360,14 @@ fn clear_message(is_full_clear: bool) -> io::Result<()> {
 fn append_instruction_comment(message: &str) -> String {
     format!(
         r#"{message}
+
 # Enter/edit the commit message for your changes.
-# Lines starting with '#' are considered comments, therefore are ignored, and will sustain through commits.
+# Lines starting with '#' are considered comments, therefore are ignored, and will not be cleared after pushing commits.
 "#
     )
 }
 
-fn read_file_ignore_comments(file_path: &str) -> Result<String> {
+fn read_file_extract_message(file_path: &str) -> Result<String> {
     let file = match File::open(file_path) {
         Ok(file) => file,
         Err(err) => return Err(err),
@@ -368,7 +380,7 @@ fn read_file_ignore_comments(file_path: &str) -> Result<String> {
             Ok(text) => text,
             Err(err) => return Err(err),
         };
-        if !line.trim_start().starts_with('#') {
+        if !line.is_empty() && !line.trim().starts_with('#') {
             content.push_str(&line);
             content.push('\n');
         }
@@ -385,36 +397,18 @@ fn read_file_extract_comments(file_path: &str) -> Result<String> {
     let reader = BufReader::new(file);
     let mut content = String::new();
 
+    let mut is_end_of_user_added_comments = false;
     for line in reader.lines() {
         let line = match line {
             Ok(text) => text,
             Err(err) => return Err(err),
         };
-        if line.trim_start().starts_with('#') {
-            content.push_str(&line);
-            content.push('\n');
+        if line.starts_with("# Enter/edit the commit message for your changes.") {
+            is_end_of_user_added_comments = true;
         }
-    }
-
-    Ok(content)
-}
-
-fn read_file_extract_message(file_path: &str) -> Result<String> {
-    let file = match File::open(file_path) {
-        Ok(file) => file,
-        Err(err) => return Err(err),
-    };
-    let reader = BufReader::new(file);
-    let mut content = String::new();
-
-    for line in reader.lines() {
-        let line = match line {
-            Ok(text) => text,
-            Err(err) => return Err(err),
-        };
-        if !line.trim_start().starts_with('#') {
-            content.push_str(&line);
+        if !line.is_empty() && line.trim().starts_with('#') && !is_end_of_user_added_comments {
             content.push('\n');
+            content.push_str(&line);
         }
     }
 
