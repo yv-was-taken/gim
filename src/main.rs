@@ -32,7 +32,7 @@ fn parse_user_input(command_input: &String, arg: Option<String>) -> io::Result<(
                         let user_added_comments =
                             match read_file_extract_comments(".COMMIT_MESSAGE") {
                                 Ok(comments) => comments,
-                                Err(err) => return Err(err),
+                                Err(_) => String::new(),
                             };
 
                         match set_message(&append_instruction_comment(
