@@ -23,17 +23,45 @@ fn main() -> io::Result<()> {
     }
 }
 
+fn find_git_root() -> Result<std::path::PathBuf> {
+    // Get the current directory
+    let mut dir = match std::env::current_dir() {
+        Ok(dir) => dir,
+        Err(err) => {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidInput,
+                format!("error getting current dir: {}", err),
+            ))
+        }
+    };
+    loop {
+        if dir.join(".git").exists() {
+            return Ok(dir);
+        }
+        if !dir.pop() {
+            // If `pop()` returns false, it means we reached the root directory
+            break;
+        }
+    }
+
+    return Err(io::Error::new(
+        io::ErrorKind::InvalidInput,
+        "no git directory found",
+    ));
+}
+
 fn parse_user_input(command_input: &String, arg: Option<String>) -> io::Result<()> {
     match &*command_input.trim() {
         "set" => {
             if let Some(argument) = arg {
                 match argument.trim().is_empty() {
                     false => {
-                        let user_added_comments =
-                            match read_file_extract_comments(".COMMIT_MESSAGE") {
-                                Ok(comments) => comments,
-                                Err(_) => String::new(),
-                            };
+                        let user_added_comments = match read_file_extract_comments(
+                            find_git_root()?.join(".COMMIT_MESSAGE"),
+                        ) {
+                            Ok(comments) => comments,
+                            Err(_) => String::new(),
+                        };
 
                         match set_message(&append_instruction_comment(
                             &(argument + &user_added_comments),
@@ -65,16 +93,17 @@ fn parse_user_input(command_input: &String, arg: Option<String>) -> io::Result<(
                         "no message argument provided",
                     ));
                 };
-                let current_message = match read_file_extract_message(".COMMIT_MESSAGE") {
-                    Ok(m) => Some(m),
-                    Err(_) => None,
-                };
+                let current_message =
+                    match read_file_extract_message(find_git_root()?.join(".COMMIT_MESSAGE")) {
+                        Ok(m) => Some(m),
+                        Err(_) => None,
+                    };
                 let current_message_with_included_message = match current_message {
                     Some(current_message) => String::from(current_message) + &argument,
                     None => argument,
                 };
                 let current_message_with_included_message_and_comments =
-                    match read_file_extract_comments(".COMMIT_MESSAGE") {
+                    match read_file_extract_comments(find_git_root()?.join(".COMMIT_MESSAGE")) {
                         Ok(comments) => current_message_with_included_message + &comments,
                         Err(_) => current_message_with_included_message,
                     };
@@ -139,7 +168,7 @@ fn display_status() -> io::Result<()> {
 }
 
 fn set_message(message_to_set: &str) -> io::Result<()> {
-    let mut file = match fs::File::create(".COMMIT_MESSAGE") {
+    let mut file = match fs::File::create(find_git_root()?.join(".COMMIT_MESSAGE")) {
         Ok(file) => file,
         Err(err) => {
             return Err(io::Error::new(
@@ -149,7 +178,8 @@ fn set_message(message_to_set: &str) -> io::Result<()> {
         }
     };
 
-    let current_message = match read_file_extract_message(".COMMIT_MESSAGE") {
+    let current_message = match read_file_extract_message(find_git_root()?.join(".COMMIT_MESSAGE"))
+    {
         Ok(m) => Some(m),
         Err(_) => None,
     };
@@ -159,10 +189,11 @@ fn set_message(message_to_set: &str) -> io::Result<()> {
         None => String::from(message_to_set),
     };
 
-    let current_message_comments = match read_file_extract_comments(".COMMIT_MESSAGE") {
-        Ok(comments) => Some(comments),
-        Err(_) => None,
-    };
+    let current_message_comments =
+        match read_file_extract_comments(find_git_root()?.join(".COMMIT_MESSAGE")) {
+            Ok(comments) => Some(comments),
+            Err(_) => None,
+        };
 
     let message_with_comments = match current_message_comments {
         Some(comments) => message_with_added_message + &comments,
@@ -179,7 +210,7 @@ fn set_message(message_to_set: &str) -> io::Result<()> {
         }
     };
 
-    match read_to_string(".gitignore") {
+    match read_to_string(find_git_root()?.join(".gitignore")) {
         Ok(content) => {
             let mut does_gitignore_contain_commit_message = false;
             for line in content.lines().filter(|line| !line.is_empty()) {
@@ -188,7 +219,7 @@ fn set_message(message_to_set: &str) -> io::Result<()> {
                 }
             }
             if !does_gitignore_contain_commit_message {
-                let mut file = match fs::File::create(".gitignore") {
+                let mut file = match fs::File::create(find_git_root()?.join(".gitignore")) {
                     Ok(file) => file,
                     Err(err) => {
                         return Err(io::Error::new(
@@ -218,7 +249,7 @@ fn set_message(message_to_set: &str) -> io::Result<()> {
             }
         }
         Err(_) => {
-            let mut file = match fs::File::create(".gitignore") {
+            let mut file = match fs::File::create(find_git_root()?.join(".gitignore")) {
                 Ok(file) => file,
                 Err(err) => {
                     return Err(io::Error::new(
@@ -279,7 +310,7 @@ fn edit_message() -> io::Result<()> {
 
 fn get_message(ignore_comments: bool) -> io::Result<String> {
     if ignore_comments {
-        match read_file_extract_message(".COMMIT_MESSAGE") {
+        match read_file_extract_message(find_git_root()?.join(".COMMIT_MESSAGE")) {
             Ok(content) => {
                 if content.trim().is_empty() {
                     Err(io::Error::new(
@@ -298,7 +329,7 @@ fn get_message(ignore_comments: bool) -> io::Result<String> {
             }
         }
     } else {
-        match read_to_string(".COMMIT_MESSAGE") {
+        match read_to_string(find_git_root()?.join(".COMMIT_MESSAGE")) {
             Ok(content) => {
                 if content.trim().is_empty() {
                     Err(io::Error::new(
@@ -321,7 +352,7 @@ fn get_message(ignore_comments: bool) -> io::Result<String> {
 
 fn clear_message(is_full_clear: bool) -> io::Result<()> {
     if is_full_clear {
-        match fs::File::create(".COMMIT_MESSAGE") {
+        match fs::File::create(find_git_root()?.join(".COMMIT_MESSAGE")) {
             Ok(_) => (),
             Err(err) => {
                 return Err(io::Error::new(
@@ -332,7 +363,7 @@ fn clear_message(is_full_clear: bool) -> io::Result<()> {
         };
         set_message(&append_instruction_comment(""))
     } else {
-        let comments = match read_file_extract_comments(".COMMIT_MESSAGE") {
+        let comments = match read_file_extract_comments(find_git_root()?.join(".COMMIT_MESSAGE")) {
             Ok(file) => &append_instruction_comment(&format!(r#"{file}"#)),
             Err(err) => {
                 return Err(io::Error::new(
@@ -341,7 +372,7 @@ fn clear_message(is_full_clear: bool) -> io::Result<()> {
                 ))
             }
         };
-        let mut file = match fs::File::create(".COMMIT_MESSAGE") {
+        let mut file = match fs::File::create(find_git_root()?.join(".COMMIT_MESSAGE")) {
             Ok(file) => file,
             Err(err) => {
                 return Err(io::Error::new(
@@ -367,7 +398,7 @@ fn append_instruction_comment(message: &str) -> String {
     )
 }
 
-fn read_file_extract_message(file_path: &str) -> Result<String> {
+fn read_file_extract_message(file_path: std::path::PathBuf) -> Result<String> {
     let file = match File::open(file_path) {
         Ok(file) => file,
         Err(err) => return Err(err),
@@ -389,7 +420,7 @@ fn read_file_extract_message(file_path: &str) -> Result<String> {
     Ok(content)
 }
 
-fn read_file_extract_comments(file_path: &str) -> Result<String> {
+fn read_file_extract_comments(file_path: std::path::PathBuf) -> Result<String> {
     let file = match File::open(file_path) {
         Ok(file) => file,
         Err(err) => return Err(err),
