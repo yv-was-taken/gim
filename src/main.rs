@@ -45,8 +45,8 @@ fn find_git_root() -> Result<std::path::PathBuf> {
     }
 
     return Err(io::Error::new(
-        io::ErrorKind::InvalidInput,
-        "no git directory found",
+        io::ErrorKind::NotFound,
+        "git directory not found",
     ));
 }
 
