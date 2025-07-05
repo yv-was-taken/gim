@@ -456,7 +456,7 @@ fn commit(contents: Option<String>) -> io::Result<()> {
 
     let files_to_add = match contents {
         Some(x) => x,
-        None => String::from("."),
+        None => String::from("-A"),
     };
     match Command::new("git")
         .arg("add")
@@ -546,7 +546,7 @@ fn push(contents: Option<String>) -> io::Result<()> {
 
     let files_to_push = match contents {
         Some(x) => x,
-        None => String::from("."),
+        None => String::from("-A"),
     };
     match Command::new("git")
         .arg("add")
@@ -657,14 +657,14 @@ fn help() -> io::Result<()> {
 
 ### `gim commit`
 
-- Equivalent to `git add . && git commit -m $COMMIT_MESSAGE`.
+- Equivalent to `git add -A && git commit -m $COMMIT_MESSAGE`.
 - Allows optional argument for inclusion of specific files, similar to `git add $FILES`.
 - Upon a successful commit, the `.COMMIT_MESSAGE` file is cleared, excluding comments.
 - Unlike `gim push`, this command only commits changes without pushing to remote.
 
 ### `gim push`
 
-- Equivalent to `git add . && git commit -m $COMMIT_MESSAGE && git push`.
+- Equivalent to `git add -A && git commit -m $COMMIT_MESSAGE && git push`.
 - Allows optional argument for inclusion of specific files, similar to `git add $FILES`.
 - Upon a successful push, the `.COMMIT_MESSAGE` file is cleared, excluding comments.
 ### `gim status` or just `gim`
