@@ -121,6 +121,7 @@ fn parse_user_input(command_input: &String, arg: Option<String>) -> io::Result<(
             }
         }
         "push" => push(arg),
+        "commit" => commit(arg),
         "status" => display_status(),
         "clear" => {
             let should_full_clear = match arg {
@@ -446,6 +447,80 @@ fn read_file_extract_comments(file_path: std::path::PathBuf) -> Result<String> {
     Ok(content)
 }
 
+fn commit(contents: Option<String>) -> io::Result<()> {
+    let commit_message = match get_message(true) {
+        Ok(message) => message,
+        Err(err) => return Err(err),
+    };
+
+    let files_to_add = match contents {
+        Some(x) => x,
+        None => String::from("."),
+    };
+    match Command::new("git")
+        .arg("add")
+        .arg(files_to_add.as_str())
+        .status()
+    {
+        Ok(_) => (),
+        Err(err) => {
+            return Err(io::Error::new(
+                io::ErrorKind::Other,
+                format!("Failed to add files with err: {:#?}", err),
+            ))
+        }
+    };
+
+    let mut commit_message_header_and_body = commit_message.split("\n").into_iter();
+
+    //can unwrap header since we know there is some text present, if empty, function would have returned err already and would have not been able to reach this far downstream.
+    let commit_message_header = commit_message_header_and_body.next().unwrap();
+    //cannot unwrap body as there may or may not be further text present.
+    let commit_message_body = commit_message_header_and_body
+        .collect::<Vec<&str>>()
+        .join("\n")
+        .to_string();
+
+    let mut commit_command_args = Vec::new();
+    commit_command_args.push("commit");
+    commit_command_args.push("-m");
+    commit_command_args.push(&commit_message_header);
+    if !commit_message_body.is_empty() {
+        commit_command_args.push("-m");
+        commit_command_args.push(&commit_message_body);
+    }
+
+    let commit_command_output = match Command::new("git").args(commit_command_args).output() {
+        Ok(console_output) => match String::from_utf8(console_output.stdout) {
+            Ok(output) => {
+                println!("{output}");
+                output
+            }
+            Err(err) => {
+                return Err(io::Error::new(
+                    io::ErrorKind::Other,
+                    format!("Failed to parse commit stdout with err: {:#?}", err),
+                ))
+            }
+        },
+        Err(err) => {
+            return Err(io::Error::new(
+                io::ErrorKind::Other,
+                format!("Failed to commit changes with err: {:#?}", err),
+            ))
+        }
+    };
+
+    if !commit_command_output.contains("nothing to commit, working tree clean") {
+        match clear_message(false) {
+            Ok(_) => (),
+            Err(err) => return Err(err),
+        }
+    };
+
+    Ok(())
+}
+
 fn push(contents: Option<String>) -> io::Result<()> {
     let commit_message = match get_message(true) {
         Ok(message) => message,
@@ -546,6 +621,13 @@ fn help() -> io::Result<()> {
 ### `gim add {ADDED_MESSAGE}`
 
 - Appends the `ADDED_MESSAGE` to the current commit message. Used for multiline commits
+
+### `gim commit`
+
+- Equivalent to `git add . && git commit -m $COMMIT_MESSAGE`.
+- Allows optional argument for inclusion of specific files, similar to `git add $FILES`.
+- Upon a successful commit, the `.COMMIT_MESSAGE` file is cleared, excluding comments.
+- Unlike `gim push`, this command only commits changes without pushing to remote.
 
 ### `gim push`
 
