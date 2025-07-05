@@ -686,4 +686,3 @@ fn help() -> io::Result<()> {
     println!("{help_message}");
     Ok(())
 }
-// Testing pre-commit hooks
