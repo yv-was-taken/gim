@@ -4,6 +4,7 @@ use std::fs::read_to_string;
 use std::fs::File;
 use std::io;
 use std::io::Write;
+use std::io::{stderr, stdout};
 use std::io::{BufRead, BufReader, Result};
 use std::process::Command;
 
@@ -490,33 +491,49 @@ fn commit(contents: Option<String>) -> io::Result<()> {
         commit_command_args.push(&commit_message_body);
     }
 
-    let commit_command_output = match Command::new("git").args(commit_command_args).output() {
-        Ok(console_output) => match String::from_utf8(console_output.stdout) {
-            Ok(output) => {
-                println!("{output}");
-                output
-            }
-            Err(err) => {
-                return Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    format!("Failed to parse commit stdout with err: {:#?}", err),
-                ))
-            }
-        },
+    let commit_output = match Command::new("git").args(commit_command_args).output() {
+        Ok(output) => output,
         Err(err) => {
             return Err(io::Error::new(
                 io::ErrorKind::Other,
-                format!("Failed to commit changes with err: {:#?}", err),
+                format!("Failed to execute git commit: {:#?}", err),
             ))
         }
     };
 
-    if !commit_command_output.contains("nothing to commit, working tree clean") {
-        match clear_message(false) {
-            Ok(_) => (),
-            Err(err) => return Err(err),
+    // Print stdout
+    if let Ok(stdout_str) = String::from_utf8(commit_output.stdout.clone()) {
+        if !stdout_str.is_empty() {
+            print!("{}", stdout_str);
+            let _ = stdout().flush();
         }
-    };
+    }
+
+    // Print stderr (this includes pre-commit hook output)
+    if let Ok(stderr_str) = String::from_utf8(commit_output.stderr.clone()) {
+        if !stderr_str.is_empty() {
+            eprint!("{}", stderr_str);
+            let _ = stderr().flush();
+        }
+    }
+
+    // Check if the commit was successful
+    if !commit_output.status.success() {
+        return Err(io::Error::new(
+            io::ErrorKind::Other,
+            "Git commit failed (possibly due to pre-commit hooks)",
+        ));
+    }
+
+    // Only clear the message if the commit was successful
+    if let Ok(stdout) = String::from_utf8(commit_output.stdout) {
+        if !stdout.contains("nothing to commit, working tree clean") {
+            match clear_message(false) {
+                Ok(_) => (),
+                Err(err) => return Err(err),
+            }
+        }
+    }
 
     Ok(())
 }
@@ -564,33 +581,49 @@ fn push(contents: Option<String>) -> io::Result<()> {
         commit_command_args.push(&commit_message_body);
     }
 
-    let commit_command_output = match Command::new("git").args(commit_command_args).output() {
-        Ok(console_output) => match String::from_utf8(console_output.stdout) {
-            Ok(output) => {
-                println!("{output}");
-                output
-            }
-            Err(err) => {
-                return Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    format!("Failed to parse commit stdout with err: {:#?}", err),
-                ))
-            }
-        },
+    let commit_output = match Command::new("git").args(commit_command_args).output() {
+        Ok(output) => output,
         Err(err) => {
             return Err(io::Error::new(
                 io::ErrorKind::Other,
-                format!("Failed to commit changes with err: {:#?}", err),
+                format!("Failed to execute git commit: {:#?}", err),
             ))
         }
     };
 
-    if !commit_command_output.contains("nothing to commit, working tree clean") {
-        match clear_message(false) {
-            Ok(_) => (),
-            Err(err) => return Err(err),
+    // Print stdout
+    if let Ok(stdout_str) = String::from_utf8(commit_output.stdout.clone()) {
+        if !stdout_str.is_empty() {
+            print!("{}", stdout_str);
+            let _ = stdout().flush();
         }
-    };
+    }
+
+    // Print stderr (this includes pre-commit hook output)
+    if let Ok(stderr_str) = String::from_utf8(commit_output.stderr.clone()) {
+        if !stderr_str.is_empty() {
+            eprint!("{}", stderr_str);
+            let _ = stderr().flush();
+        }
+    }
+
+    // Check if the commit was successful
+    if !commit_output.status.success() {
+        return Err(io::Error::new(
+            io::ErrorKind::Other,
+            "Git commit failed (possibly due to pre-commit hooks)",
+        ));
+    }
+
+    // Only clear the message if the commit was successful
+    if let Ok(stdout) = String::from_utf8(commit_output.stdout) {
+        if !stdout.contains("nothing to commit, working tree clean") {
+            match clear_message(false) {
+                Ok(_) => (),
+                Err(err) => return Err(err),
+            }
+        }
+    }
 
     match Command::new("git").arg("push").status() {
         Ok(_) => Ok(()),
@@ -653,3 +686,4 @@ fn help() -> io::Result<()> {
     println!("{help_message}");
     Ok(())
 }
+// Testing pre-commit hooks
