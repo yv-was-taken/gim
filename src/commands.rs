@@ -1,15 +1,15 @@
+use crate::config::{get_config_path, load_config, save_config};
+use crate::display::{display_enhanced_commit_status, display_full_status};
+use crate::git::find_git_root;
+use crate::message::{
+    append_instruction_comment, edit_with_configured_editor, get_message,
+    read_file_extract_comments, read_file_extract_message, set_message,
+};
 use std::fs;
 use std::fs::read_to_string;
 use std::io;
 use std::io::Write;
 use std::io::{stdin, stdout, BufRead};
-use crate::config::{get_config_path, load_config, save_config};
-use crate::git::find_git_root;
-use crate::message::{
-    get_message, set_message, append_instruction_comment, edit_with_configured_editor,
-    read_file_extract_message, read_file_extract_comments
-};
-use crate::display::{display_enhanced_commit_status, display_full_status};
 
 pub fn handle_config_command(args: &[String]) -> io::Result<()> {
     if args.is_empty() {
@@ -337,8 +337,8 @@ pub fn handle_status_command(args: &[String]) -> io::Result<()> {
 
 pub fn add_title(new_title: &str) -> io::Result<()> {
     let current_message = read_file_extract_message(find_git_root()?.join(".COMMIT_MESSAGE")).ok();
-    let current_comments = read_file_extract_comments(find_git_root()?.join(".COMMIT_MESSAGE"))
-        .unwrap_or_default();
+    let current_comments =
+        read_file_extract_comments(find_git_root()?.join(".COMMIT_MESSAGE")).unwrap_or_default();
 
     let updated_message = match current_message {
         Some(current_msg) => {
@@ -376,8 +376,8 @@ pub fn add_title(new_title: &str) -> io::Result<()> {
 
 pub fn add_description(description: &str) -> io::Result<()> {
     let current_message = read_file_extract_message(find_git_root()?.join(".COMMIT_MESSAGE")).ok();
-    let current_comments = read_file_extract_comments(find_git_root()?.join(".COMMIT_MESSAGE"))
-        .unwrap_or_default();
+    let current_comments =
+        read_file_extract_comments(find_git_root()?.join(".COMMIT_MESSAGE")).unwrap_or_default();
 
     let updated_message = match current_message {
         Some(current_msg) => {
@@ -455,6 +455,34 @@ pub fn find_next_commit_number(content: &str) -> usize {
 }
 
 pub fn help() -> io::Result<()> {
+    // ANSI color codes for matrix-style green
+    let green = "\x1b[32m";      // Regular green
+    let bright_green = "\x1b[92m"; // Bright green
+    let cyan = "\x1b[36m";        // Cyan
+    let bright_cyan = "\x1b[96m"; // Bright cyan
+    let reset = "\x1b[0m";        // Reset color
+    let bold = "\x1b[1m";         // Bold text
+
+    println!("{}", format!(r#"
+    {green}╔═══════════════════════════════════════════════════════════════╗{reset}
+    {green}║                                                               ║{reset}
+    {green}║   {bright_green}{bold}██████╗ ██╗███╗   ███╗{reset}                                     {green}║{reset}
+    {green}║  {bright_green}{bold}██╔════╝ ██║████╗ ████║{reset}  {cyan}Commit-Driven Development{reset}          {green}║{reset}
+    {green}║  {bright_green}{bold}██║  ███╗██║██╔████╔██║{reset}  {cyan}Git CLI Utility{reset}                    {green}║{reset}
+    {green}║  {bright_green}{bold}██║   ██║██║██║╚██╔╝██║{reset}  {bright_cyan}v1.0.0{reset}                             {green}║{reset}
+    {green}║  {bright_green}{bold}╚██████╔╝██║██║ ╚═╝ ██║{reset}                                     {green}║{reset}
+    {green}║   {bright_green}{bold}╚═════╝ ╚═╝╚═╝     ╚═╝{reset}  {cyan}Plan → Code → Commit → Push{reset}      {green}║{reset}
+    {green}║                                                               ║{reset}
+    {green}╚═══════════════════════════════════════════════════════════════╝{reset}
+"#,
+        green = green,
+        bright_green = bright_green,
+        cyan = cyan,
+        bright_cyan = bright_cyan,
+        reset = reset,
+        bold = bold
+    ));
+
     let help_message = r#"
 `gim` provides the following commands:
 
@@ -548,3 +576,4 @@ pub fn help() -> io::Result<()> {
     println!("{help_message}");
     Ok(())
 }
+
