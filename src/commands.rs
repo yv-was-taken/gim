@@ -456,32 +456,36 @@ pub fn find_next_commit_number(content: &str) -> usize {
 
 pub fn help() -> io::Result<()> {
     // ANSI color codes for matrix-style green
-    let green = "\x1b[32m";      // Regular green
+    let green = "\x1b[32m"; // Regular green
     let bright_green = "\x1b[92m"; // Bright green
-    let cyan = "\x1b[36m";        // Cyan
+    let cyan = "\x1b[36m"; // Cyan
     let bright_cyan = "\x1b[96m"; // Bright cyan
-    let reset = "\x1b[0m";        // Reset color
-    let bold = "\x1b[1m";         // Bold text
+    let reset = "\x1b[0m"; // Reset color
+    let bold = "\x1b[1m"; // Bold text
 
-    println!("{}", format!(r#"
+    println!(
+        "{}",
+        format!(
+            r#"
     {green}╔═══════════════════════════════════════════════════════════════╗{reset}
     {green}║                                                               ║{reset}
-    {green}║   {bright_green}{bold}██████╗ ██╗███╗   ███╗{reset}                                     {green}║{reset}
-    {green}║  {bright_green}{bold}██╔════╝ ██║████╗ ████║{reset}  {cyan}Commit-Driven Development{reset}          {green}║{reset}
-    {green}║  {bright_green}{bold}██║  ███╗██║██╔████╔██║{reset}  {cyan}Git CLI Utility{reset}                    {green}║{reset}
-    {green}║  {bright_green}{bold}██║   ██║██║██║╚██╔╝██║{reset}  {bright_cyan}v1.0.0{reset}                             {green}║{reset}
-    {green}║  {bright_green}{bold}╚██████╔╝██║██║ ╚═╝ ██║{reset}                                     {green}║{reset}
-    {green}║   {bright_green}{bold}╚═════╝ ╚═╝╚═╝     ╚═╝{reset}  {cyan}Plan → Code → Commit → Push{reset}      {green}║{reset}
+    {green}║   {bright_green}{bold}██████╗ ██╗███╗   ███╗{reset}                                      {green}║{reset}
+    {green}║  {bright_green}{bold}██╔════╝ ██║████╗ ████║{reset}   {cyan}Commit-Driven Development{reset}          {green}║{reset}
+    {green}║  {bright_green}{bold}██║  ███╗██║██╔████╔██║{reset}   {cyan}Git CLI Utility{reset}                    {green}║{reset}
+    {green}║  {bright_green}{bold}██║   ██║██║██║╚██╔╝██║{reset}   {bright_cyan}v1.0.1{reset}                             {green}║{reset}
+    {green}║  {bright_green}{bold}╚██████╔╝██║██║ ╚═╝ ██║{reset}                                      {green}║{reset}
+    {green}║   {bright_green}{bold}╚═════╝ ╚═╝╚═╝     ╚═╝{reset}   {cyan}Plan → Code → Commit → Push{reset}        {green}║{reset}
     {green}║                                                               ║{reset}
     {green}╚═══════════════════════════════════════════════════════════════╝{reset}
 "#,
-        green = green,
-        bright_green = bright_green,
-        cyan = cyan,
-        bright_cyan = bright_cyan,
-        reset = reset,
-        bold = bold
-    ));
+            green = green,
+            bright_green = bright_green,
+            cyan = cyan,
+            bright_cyan = bright_cyan,
+            reset = reset,
+            bold = bold
+        )
+    );
 
     let help_message = r#"
 `gim` provides the following commands:
@@ -576,4 +580,3 @@ pub fn help() -> io::Result<()> {
     println!("{help_message}");
     Ok(())
 }
-
