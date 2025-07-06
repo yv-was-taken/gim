@@ -86,3 +86,32 @@ The entire application is implemented in `src/main.rs` (574 lines) with the foll
 - Error messages aim to be helpful with recovery suggestions
 - Supports multi-line commit messages and comment lines (starting with #)
 - The `.COMMIT_MESSAGE` file is always created at the git repository root, not the current directory
+
+## Gim Integration
+
+This project uses `gim` for commit-driven development. When working with this codebase:
+
+### Core Workflow
+- Use `gim status` to see current commit message and upcoming planned commits
+- Use `gim add "task description"` to add tasks to the current commit title
+- Use `gim add --desc "detailed description"` to add descriptions below the title
+- Use `gim add --next "future commit message"` to plan upcoming commits
+- Use `gim commit` to commit without pushing (allows multiple commits before push)
+- Use `gim push` to commit and push all changes
+
+### Development Approach
+- **Commit-driven development**: Plan work through commit messages before implementation
+- **Upcoming commits**: View NEXT-N comments in `gim status` as your todo list for future work
+- **Structured commits**: Use clear, descriptive commit titles with optional detailed descriptions
+- **Incremental progress**: Make small, focused commits that build toward larger features
+
+### Configuration
+- Run `gim config` to view current settings
+- Run `gim config edit` to customize behavior (default editor, verbosity, etc.)
+- Use `gim reorder` to reorganize planned upcoming commits
+
+### Integration Notes
+- Always check `gim status` before starting work to understand current context
+- Use the upcoming commits (NEXT-N) as a roadmap for implementation
+- When approaching issues, break them down into planned commits using `gim add --next`
+- Prefer multiple small commits over large monolithic ones
