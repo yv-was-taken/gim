@@ -1,16 +1,16 @@
+use crate::git::find_git_root;
 use std::fs;
 use std::fs::read_to_string;
 use std::io;
 use std::io::Write;
-use crate::git::find_git_root;
 
 pub fn handle_integrate_command() -> io::Result<()> {
     let git_root = find_git_root()?;
-    
+
     // Define possible LLM instruction files to search for
     let llm_files = [
         ".cursorrules",
-        "CLAUDE.md", 
+        "CLAUDE.md",
         "claude.md",
         "Claude.md",
         ".claude.md",
@@ -18,11 +18,11 @@ pub fn handle_integrate_command() -> io::Result<()> {
         "coder.md",
         "AI.md",
         "ai.md",
-        ".ai.md"
+        ".ai.md",
     ];
-    
+
     let mut found_file = None;
-    
+
     // Search for existing LLM instruction files
     for file_name in &llm_files {
         let file_path = git_root.join(file_name);
@@ -31,7 +31,7 @@ pub fn handle_integrate_command() -> io::Result<()> {
             break;
         }
     }
-    
+
     let target_file = match found_file {
         Some(file_path) => file_path,
         None => {
@@ -41,16 +41,21 @@ pub fn handle_integrate_command() -> io::Result<()> {
             ));
         }
     };
-    
+
     // Read existing content
     let existing_content = read_to_string(&target_file).unwrap_or_default();
-    
+
     // Check if gim integration is already present
-    if existing_content.contains("## Gim Integration") || existing_content.contains("# Gim Integration") {
-        println!("Gim integration already present in {}", target_file.file_name().unwrap().to_string_lossy());
+    if existing_content.contains("## Gim Integration")
+        || existing_content.contains("# Gim Integration")
+    {
+        println!(
+            "Gim integration already present in {}",
+            target_file.file_name().unwrap().to_string_lossy()
+        );
         return Ok(());
     }
-    
+
     // Prepare the gim integration section
     let gim_section = r#"
 ## Gim Integration
@@ -82,20 +87,23 @@ This project uses `gim` for commit-driven development. When working with this co
 - When approaching issues, break them down into planned commits using `gim add --next`
 - Prefer multiple small commits over large monolithic ones
 "#;
-    
+
     // Append the gim section to the file
     let new_content = if existing_content.trim().is_empty() {
         gim_section.trim().to_string()
     } else {
         format!("{}\n{}", existing_content.trim(), gim_section)
     };
-    
+
     // Write the updated content
     let mut file = fs::File::create(&target_file)?;
     write!(file, "{}", new_content)?;
-    
-    println!("Gim integration added to {}", target_file.file_name().unwrap().to_string_lossy());
+
+    println!(
+        "Gim integration added to {}",
+        target_file.file_name().unwrap().to_string_lossy()
+    );
     println!("LLMs working with this repository will now be instructed to use gim for commit-driven development.");
-    
+
     Ok(())
 }

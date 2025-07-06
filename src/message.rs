@@ -1,14 +1,14 @@
+use crate::config::load_config;
+use crate::display::display_enhanced_commit_status;
+use crate::git::find_git_root;
 use std::fs;
 use std::fs::read_to_string;
 use std::io;
+use std::io::Result;
 use std::io::Write;
-use std::io::{Result};
 use std::process::Command;
-use crate::git::find_git_root;
-use crate::config::load_config;
-use crate::display::display_enhanced_commit_status;
 
-pub fn set_message(message_to_set: &str) -> io::Result<()> {
+pub fn set_message(message_to_set: &str, print_status_update: bool) -> io::Result<()> {
     let mut file = match fs::File::create(find_git_root()?.join(".COMMIT_MESSAGE")) {
         Ok(file) => file,
         Err(err) => {
@@ -29,8 +29,10 @@ pub fn set_message(message_to_set: &str) -> io::Result<()> {
         }
     };
 
-    println!("Commit message set:");
-    let _ = display_enhanced_commit_status();
+    if print_status_update {
+        println!("Commit message set:");
+        let _ = display_enhanced_commit_status();
+    }
 
     Ok(())
 }
@@ -68,11 +70,11 @@ pub fn edit_message() -> io::Result<()> {
     let current_commit_message = get_message(false).ok();
     match current_commit_message {
         Some(message) => match edit_with_configured_editor(&message) {
-            Ok(m) => set_message(&m),
+            Ok(m) => set_message(&m, true),
             Err(err) => Err(err),
         },
         None => match edit_with_configured_editor(" ") {
-            Ok(m) => set_message(&append_instruction_comment(&m)),
+            Ok(m) => set_message(&append_instruction_comment(&m), true),
             Err(err) => Err(err),
         },
     }
@@ -121,7 +123,7 @@ pub fn clear_message(is_full_clear: bool) -> io::Result<()> {
             read_file_extract_comments(find_git_root()?.join(".COMMIT_MESSAGE"))
                 .unwrap_or_default();
 
-        match set_message(&append_instruction_comment(&user_added_comments)) {
+        match set_message(&append_instruction_comment(&user_added_comments), false) {
             Ok(_) => Ok(()),
             Err(err) => Err(err),
         }

@@ -1,20 +1,22 @@
-mod config;
-mod git;
-mod message;
-mod display;
 mod commands;
+mod config;
+mod display;
+mod git;
 mod integration;
+mod message;
 
-use std::io;
 use crate::commands::{
-    handle_config_command, handle_add_command, handle_status_command, 
-    handle_reorder_command, help
+    handle_add_command, handle_config_command, handle_reorder_command, handle_status_command, help,
 };
-use crate::git::{commit, push};
-use crate::message::{set_message, edit_message, clear_message, append_instruction_comment, read_file_extract_comments};
 use crate::display::display_status;
-use crate::integration::handle_integrate_command;
 use crate::git::find_git_root;
+use crate::git::{commit, push};
+use crate::integration::handle_integrate_command;
+use crate::message::{
+    append_instruction_comment, clear_message, edit_message, read_file_extract_comments,
+    set_message,
+};
+use std::io;
 
 fn main() -> io::Result<()> {
     let args: Vec<String> = std::env::args().collect();
@@ -41,9 +43,10 @@ fn parse_user_input(command_input: &String, args: &[String]) -> io::Result<()> {
                 read_file_extract_comments(find_git_root()?.join(".COMMIT_MESSAGE"))
                     .unwrap_or_default();
 
-            set_message(&append_instruction_comment(
-                &(message + &user_added_comments),
-            ))
+            set_message(
+                &append_instruction_comment(&(message + &user_added_comments)),
+                true,
+            )
         }
         "edit" => edit_message(),
         "add" => handle_add_command(args),

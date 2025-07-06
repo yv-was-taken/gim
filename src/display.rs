@@ -1,9 +1,9 @@
+use crate::config::load_config;
+use crate::git::find_git_root;
+use crate::message::get_message;
 use std::fs::read_to_string;
 use std::io;
 use std::process::Command;
-use crate::git::find_git_root;
-use crate::message::get_message;
-use crate::config::load_config;
 
 pub fn display_status() -> io::Result<()> {
     display_enhanced_commit_status()?;

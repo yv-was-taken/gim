@@ -1,7 +1,7 @@
+use crate::message::{advance_to_next_commit, get_message};
 use std::io;
-use std::io::{Result};
+use std::io::Result;
 use std::process::Command;
-use crate::message::{get_message, advance_to_next_commit};
 
 pub fn find_git_root() -> Result<std::path::PathBuf> {
     // Get the current directory
@@ -63,14 +63,19 @@ pub fn commit(contents: Option<String>) -> io::Result<()> {
         .output()
     {
         Ok(output) => output,
-        Err(err) => return Err(io::Error::other(format!("Failed to run git commit: {}", err))),
+        Err(err) => {
+            return Err(io::Error::other(format!(
+                "Failed to run git commit: {}",
+                err
+            )))
+        }
     };
 
     // Check if commit failed and capture both stdout and stderr
     if !commit_output.status.success() {
         let stdout = String::from_utf8_lossy(&commit_output.stdout);
         let stderr = String::from_utf8_lossy(&commit_output.stderr);
-        
+
         // Print the pre-commit hook output to help user debug
         if !stdout.is_empty() {
             println!("Git commit output:\n{}", stdout);
@@ -78,7 +83,7 @@ pub fn commit(contents: Option<String>) -> io::Result<()> {
         if !stderr.is_empty() {
             println!("Git commit errors:\n{}", stderr);
         }
-        
+
         return Err(io::Error::other(
             "Git commit failed (possibly due to pre-commit hooks)",
         ));
@@ -128,14 +133,19 @@ pub fn push(contents: Option<String>) -> io::Result<()> {
         .output()
     {
         Ok(output) => output,
-        Err(err) => return Err(io::Error::other(format!("Failed to run git commit: {}", err))),
+        Err(err) => {
+            return Err(io::Error::other(format!(
+                "Failed to run git commit: {}",
+                err
+            )))
+        }
     };
 
     // Check if commit failed and capture both stdout and stderr
     if !commit_output.status.success() {
         let stdout = String::from_utf8_lossy(&commit_output.stdout);
         let stderr = String::from_utf8_lossy(&commit_output.stderr);
-        
+
         // Print the pre-commit hook output to help user debug
         if !stdout.is_empty() {
             println!("Git commit output:\n{}", stdout);
@@ -143,7 +153,7 @@ pub fn push(contents: Option<String>) -> io::Result<()> {
         if !stderr.is_empty() {
             println!("Git commit errors:\n{}", stderr);
         }
-        
+
         return Err(io::Error::other(
             "Git commit failed (possibly due to pre-commit hooks)",
         ));
