@@ -19,7 +19,7 @@ pub fn set_message(message_to_set: &str, print_status_update: bool) -> io::Resul
         }
     };
 
-    match write!(file, "{}", message_to_set) {
+    match write!(file, "{message_to_set}") {
         Ok(_) => (),
         Err(err) => {
             return Err(io::Error::new(
@@ -51,10 +51,10 @@ pub fn edit_with_configured_editor(content: &str) -> io::Result<String> {
 
     if !status.success() {
         fs::remove_file(&temp_file).ok(); // Clean up on failure
-        return Err(io::Error::new(
-            io::ErrorKind::Other,
-            format!("Editor '{}' exited with non-zero status", config.editor),
-        ));
+        return Err(io::Error::other(format!(
+            "Editor '{}' exited with non-zero status",
+            config.editor
+        )));
     }
 
     // Read the edited content
@@ -251,8 +251,8 @@ pub fn advance_to_next_commit() -> io::Result<()> {
 
     // Write the updated content
     let mut file = fs::File::create(find_git_root()?.join(".COMMIT_MESSAGE"))?;
-    write!(file, "{}", new_content)?;
+    write!(file, "{new_content}")?;
 
-    println!("Advanced to next commit: {}", next_message);
+    println!("Advanced to next commit: {next_message}");
     Ok(())
 }

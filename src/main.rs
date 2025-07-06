@@ -63,7 +63,7 @@ fn parse_user_input(command_input: &String, args: &[String]) -> io::Result<()> {
         "integrate" => handle_integrate_command(),
         "reorder" => handle_reorder_command(),
         "clear" => {
-            let should_full_clear = args.get(0).map_or(false, |arg| arg == "full");
+            let should_full_clear = args.first().is_some_and(|arg| arg == "full");
 
             match clear_message(should_full_clear) {
                 Ok(_) => {

@@ -113,7 +113,7 @@ pub fn display_full_status() -> io::Result<()> {
     match get_message(false) {
         Ok(message) => {
             println!("Complete .COMMIT_MESSAGE file contents:");
-            println!("{}", message);
+            println!("{message}");
         }
         Err(_) => println!("No commit message file found."),
     }

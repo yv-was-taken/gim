@@ -40,8 +40,8 @@ pub fn handle_config_command(args: &[String]) -> io::Result<()> {
             }
         );
         println!(
-            "  editor = \"{}\" ({})",
-            config.editor, "editor used for 'gim edit' and 'gim config edit'"
+            "  editor = \"{}\" (editor used for 'gim edit' and 'gim config edit')",
+            config.editor,
         );
         println!();
         println!("Use 'gim config edit' to modify these settings");
@@ -63,7 +63,7 @@ pub fn handle_config_command(args: &[String]) -> io::Result<()> {
                 Ok(new_content) => {
                     // Write the edited content back
                     let mut file = fs::File::create(&config_path)?;
-                    write!(file, "{}", new_content)?;
+                    write!(file, "{new_content}")?;
 
                     // Validate the new config by trying to parse it
                     let new_config = load_config();
@@ -73,10 +73,7 @@ pub fn handle_config_command(args: &[String]) -> io::Result<()> {
                     println!("  editor = \"{}\"", new_config.editor);
                 }
                 Err(err) => {
-                    return Err(io::Error::new(
-                        io::ErrorKind::Other,
-                        format!("Failed to edit config: {}", err),
-                    ));
+                    return Err(io::Error::other(format!("Failed to edit config: {err}")));
                 }
             }
         }
@@ -164,7 +161,7 @@ pub fn handle_reorder_command() -> io::Result<()> {
             if let Ok(index) = parts[1].parse::<usize>() {
                 if index > 0 && index <= next_commits.len() {
                     let (_, message) = &next_commits[index - 1];
-                    println!("Commenting out: {}", message);
+                    println!("Commenting out: {message}");
 
                     // Remove the commit from next_commits and add as comment
                     let commented_commit = next_commits.remove(index - 1);
@@ -279,7 +276,7 @@ pub fn rebuild_commit_file_with_reorder(
 
     // Write the updated content
     let mut file = fs::File::create(find_git_root()?.join(".COMMIT_MESSAGE"))?;
-    write!(file, "{}", new_content)?;
+    write!(file, "{new_content}")?;
 
     Ok(())
 }
@@ -368,7 +365,7 @@ pub fn add_title(new_title: &str) -> io::Result<()> {
     let message_with_comments = if current_comments.is_empty() {
         updated_message
     } else {
-        format!("{}\n{}", updated_message, current_comments)
+        format!("{updated_message}\n{current_comments}")
     };
 
     set_message(&append_instruction_comment(&message_with_comments), true)
@@ -393,7 +390,7 @@ pub fn add_description(description: &str) -> io::Result<()> {
     let message_with_comments = if current_comments.is_empty() {
         updated_message
     } else {
-        format!("{}\n{}", updated_message, current_comments)
+        format!("{updated_message}\n{current_comments}")
     };
 
     set_message(&append_instruction_comment(&message_with_comments), true)
@@ -411,7 +408,7 @@ pub fn add_next_commit_message(message: &str) -> io::Result<()> {
     };
 
     let next_number = find_next_commit_number(&current_content);
-    let next_line = format!("# NEXT-{}: {}", next_number, message);
+    let next_line = format!("# NEXT-{next_number}: {message}");
 
     // Find insertion point (before instruction comments)
     let lines: Vec<&str> = current_content.lines().collect();
@@ -465,7 +462,7 @@ pub fn help() -> io::Result<()> {
 
     println!(
         "{}",
-        format!(
+        format_args!(
             r#"
     {green}╔═══════════════════════════════════════════════════════════════╗{reset}
     {green}║                                                               ║{reset}

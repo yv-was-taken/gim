@@ -97,7 +97,7 @@ This project uses `gim` for commit-driven development. When working with this co
 
     // Write the updated content
     let mut file = fs::File::create(&target_file)?;
-    write!(file, "{}", new_content)?;
+    write!(file, "{new_content}")?;
 
     println!(
         "Gim integration added to {}",

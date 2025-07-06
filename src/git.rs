@@ -44,31 +44,26 @@ pub fn commit(contents: Option<String>) -> io::Result<()> {
             }
             command.output()
         }
-        _ => Command::new("git").args(&["add", "-A"]).output(),
+        _ => Command::new("git").args(["add", "-A"]).output(),
     };
 
     match add_result {
         Ok(add_output) => {
             if !add_output.status.success() {
                 let stderr = String::from_utf8_lossy(&add_output.stderr);
-                return Err(io::Error::other(format!("Git add failed: {}", stderr)));
+                return Err(io::Error::other(format!("Git add failed: {stderr}")));
             }
         }
-        Err(err) => return Err(io::Error::other(format!("Failed to run git add: {}", err))),
+        Err(err) => return Err(io::Error::other(format!("Failed to run git add: {err}"))),
     }
 
     // Run git commit
     let commit_output = match Command::new("git")
-        .args(&["commit", "-m", &commit_message])
+        .args(["commit", "-m", &commit_message])
         .output()
     {
         Ok(output) => output,
-        Err(err) => {
-            return Err(io::Error::other(format!(
-                "Failed to run git commit: {}",
-                err
-            )))
-        }
+        Err(err) => return Err(io::Error::other(format!("Failed to run git commit: {err}"))),
     };
 
     // Check if commit failed and capture both stdout and stderr
@@ -78,10 +73,10 @@ pub fn commit(contents: Option<String>) -> io::Result<()> {
 
         // Print the pre-commit hook output to help user debug
         if !stdout.is_empty() {
-            println!("Git commit output:\n{}", stdout);
+            println!("Git commit output:\n{stdout}");
         }
         if !stderr.is_empty() {
-            println!("Git commit errors:\n{}", stderr);
+            println!("Git commit errors:\n{stderr}");
         }
 
         return Err(io::Error::other(
@@ -114,31 +109,26 @@ pub fn push(contents: Option<String>) -> io::Result<()> {
             }
             command.output()
         }
-        _ => Command::new("git").args(&["add", "-A"]).output(),
+        _ => Command::new("git").args(["add", "-A"]).output(),
     };
 
     match add_result {
         Ok(add_output) => {
             if !add_output.status.success() {
                 let stderr = String::from_utf8_lossy(&add_output.stderr);
-                return Err(io::Error::other(format!("Git add failed: {}", stderr)));
+                return Err(io::Error::other(format!("Git add failed: {stderr}")));
             }
         }
-        Err(err) => return Err(io::Error::other(format!("Failed to run git add: {}", err))),
+        Err(err) => return Err(io::Error::other(format!("Failed to run git add: {err}"))),
     }
 
     // Run git commit
     let commit_output = match Command::new("git")
-        .args(&["commit", "-m", &commit_message])
+        .args(["commit", "-m", &commit_message])
         .output()
     {
         Ok(output) => output,
-        Err(err) => {
-            return Err(io::Error::other(format!(
-                "Failed to run git commit: {}",
-                err
-            )))
-        }
+        Err(err) => return Err(io::Error::other(format!("Failed to run git commit: {err}"))),
     };
 
     // Check if commit failed and capture both stdout and stderr
@@ -148,10 +138,10 @@ pub fn push(contents: Option<String>) -> io::Result<()> {
 
         // Print the pre-commit hook output to help user debug
         if !stdout.is_empty() {
-            println!("Git commit output:\n{}", stdout);
+            println!("Git commit output:\n{stdout}");
         }
         if !stderr.is_empty() {
-            println!("Git commit errors:\n{}", stderr);
+            println!("Git commit errors:\n{stderr}");
         }
 
         return Err(io::Error::other(
