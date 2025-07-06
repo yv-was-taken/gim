@@ -96,7 +96,7 @@ pub fn commit(contents: Option<String>) -> io::Result<()> {
         }
     }
 
-    println!("Committed successfully!");
+    println!("Changes committed.");
     Ok(())
 }
 
