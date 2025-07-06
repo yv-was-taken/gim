@@ -31,7 +31,7 @@ fn find_git_root() -> Result<std::path::PathBuf> {
         Err(err) => {
             return Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
-                format!("error getting current dir: {}", err),
+                format!("error getting current dir: {err}"),
             ))
         }
     };
@@ -45,44 +45,39 @@ fn find_git_root() -> Result<std::path::PathBuf> {
         }
     }
 
-    return Err(io::Error::new(
+    Err(io::Error::new(
         io::ErrorKind::NotFound,
         "git directory not found",
-    ));
+    ))
 }
 
 fn parse_user_input(command_input: &String, arg: Option<String>) -> io::Result<()> {
-    match &*command_input.trim() {
+    match command_input.trim() {
         "set" => {
             if let Some(argument) = arg {
                 match argument.trim().is_empty() {
                     false => {
-                        let user_added_comments = match read_file_extract_comments(
-                            find_git_root()?.join(".COMMIT_MESSAGE"),
-                        ) {
-                            Ok(comments) => comments,
-                            Err(_) => String::new(),
-                        };
+                        let user_added_comments =
+                            read_file_extract_comments(find_git_root()?.join(".COMMIT_MESSAGE"))
+                                .unwrap_or_default();
 
                         match set_message(&append_instruction_comment(
                             &(argument + &user_added_comments),
                         )) {
                             Ok(_) => Ok(()),
-                            Err(err) => return Err(err),
+                            Err(err) => Err(err),
                         }
                     }
-                    true => {
-                        return Err(io::Error::new(
-                            io::ErrorKind::InvalidInput,
-                            "no message argument provided",
-                        ))
-                    }
+                    true => Err(io::Error::new(
+                        io::ErrorKind::InvalidInput,
+                        "no message argument provided",
+                    )),
                 }
             } else {
-                return Err(io::Error::new(
+                Err(io::Error::new(
                     io::ErrorKind::InvalidInput,
                     "no message argument provided",
-                ));
+                ))
             }
         }
         "edit" => edit_message(),
@@ -95,12 +90,9 @@ fn parse_user_input(command_input: &String, arg: Option<String>) -> io::Result<(
                     ));
                 };
                 let current_message =
-                    match read_file_extract_message(find_git_root()?.join(".COMMIT_MESSAGE")) {
-                        Ok(m) => Some(m),
-                        Err(_) => None,
-                    };
+                    read_file_extract_message(find_git_root()?.join(".COMMIT_MESSAGE")).ok();
                 let current_message_with_included_message = match current_message {
-                    Some(current_message) => String::from(current_message) + &argument,
+                    Some(current_message) => current_message + &argument,
                     None => argument,
                 };
                 let current_message_with_included_message_and_comments =
@@ -112,13 +104,13 @@ fn parse_user_input(command_input: &String, arg: Option<String>) -> io::Result<(
                     &current_message_with_included_message_and_comments,
                 )) {
                     Ok(_) => Ok(()),
-                    Err(err) => return Err(err),
+                    Err(err) => Err(err),
                 }
             } else {
-                return Err(io::Error::new(
+                Err(io::Error::new(
                     io::ErrorKind::InvalidInput,
                     "no message argument provided",
-                ));
+                ))
             }
         }
         "push" => push(arg),
@@ -126,10 +118,7 @@ fn parse_user_input(command_input: &String, arg: Option<String>) -> io::Result<(
         "status" => display_status(),
         "clear" => {
             let should_full_clear = match arg {
-                Some(_arg) => match &*_arg {
-                    "full" => true,
-                    _ => false,
-                },
+                Some(_arg) => matches!(&*_arg, "full"),
                 None => false,
             };
 
@@ -150,7 +139,7 @@ fn parse_user_input(command_input: &String, arg: Option<String>) -> io::Result<(
         "help" => help(),
         _ => Err(io::Error::new(
             io::ErrorKind::InvalidInput,
-            format!("Unrecognized command: {}", command_input),
+            format!("Unrecognized command: {command_input}"),
         )),
     }
 }
@@ -162,10 +151,9 @@ fn display_status() -> io::Result<()> {
     };
     match Command::new("git").arg("status").spawn() {
         Ok(_) => Ok(()),
-        Err(err) => Err(io::Error::new(
-            io::ErrorKind::Other,
-            format!("Failed to retrieve status with err: {:#?}", err),
-        )),
+        Err(err) => Err(io::Error::other(format!(
+            "Failed to retrieve status with err: {err:#?}"
+        ))),
     }
 }
 
@@ -173,18 +161,13 @@ fn set_message(message_to_set: &str) -> io::Result<()> {
     let mut file = match fs::File::create(find_git_root()?.join(".COMMIT_MESSAGE")) {
         Ok(file) => file,
         Err(err) => {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                format!("Failed to create .COMMIT_MESSAGE with err: {:#?}", err),
-            ))
+            return Err(io::Error::other(format!(
+                "Failed to create .COMMIT_MESSAGE with err: {err:#?}"
+            )))
         }
     };
 
-    let current_message = match read_file_extract_message(find_git_root()?.join(".COMMIT_MESSAGE"))
-    {
-        Ok(m) => Some(m),
-        Err(_) => None,
-    };
+    let current_message = read_file_extract_message(find_git_root()?.join(".COMMIT_MESSAGE")).ok();
 
     let message_with_added_message = match current_message {
         Some(m) => m + message_to_set,
@@ -192,23 +175,19 @@ fn set_message(message_to_set: &str) -> io::Result<()> {
     };
 
     let current_message_comments =
-        match read_file_extract_comments(find_git_root()?.join(".COMMIT_MESSAGE")) {
-            Ok(comments) => Some(comments),
-            Err(_) => None,
-        };
+        read_file_extract_comments(find_git_root()?.join(".COMMIT_MESSAGE")).ok();
 
     let message_with_comments = match current_message_comments {
         Some(comments) => message_with_added_message + &comments,
         None => message_with_added_message,
     };
 
-    match write!(file, "{}", message_with_comments) {
+    match write!(file, "{message_with_comments}") {
         Ok(_) => (),
         Err(err) => {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                format!("Failed to write to .COMMIT_MESSAGE with err: {:#?}", err),
-            ))
+            return Err(io::Error::other(format!(
+                "Failed to write to .COMMIT_MESSAGE with err: {err:#?}"
+            )))
         }
     };
 
@@ -224,28 +203,25 @@ fn set_message(message_to_set: &str) -> io::Result<()> {
                 let mut file = match fs::File::create(find_git_root()?.join(".gitignore")) {
                     Ok(file) => file,
                     Err(err) => {
-                        return Err(io::Error::new(
-                            io::ErrorKind::Other,
-                            format!("Failed to create .gitignore with err: {:#?}", err),
-                        ))
+                        return Err(io::Error::other(format!(
+                            "Failed to create .gitignore with err: {err:#?}"
+                        )))
                     }
                 };
-                match writeln!(file, "{}", content) {
+                match writeln!(file, "{content}") {
                     Ok(_) => (),
                     Err(err) => {
-                        return Err(io::Error::new(
-                            io::ErrorKind::Other,
-                            format!("Failed to write to .gitignore with err: {:#?}", err),
-                        ))
+                        return Err(io::Error::other(format!(
+                            "Failed to write to .gitignore with err: {err:#?}"
+                        )))
                     }
                 };
                 match writeln!(file, ".COMMIT_MESSAGE") {
                     Ok(_) => (),
                     Err(err) => {
-                        return Err(io::Error::new(
-                            io::ErrorKind::Other,
-                            format!("Failed to write to .gitignore with err: {:#?}", err),
-                        ))
+                        return Err(io::Error::other(format!(
+                            "Failed to write to .gitignore with err: {err:#?}",
+                        )))
                     }
                 };
             }
@@ -254,27 +230,24 @@ fn set_message(message_to_set: &str) -> io::Result<()> {
             let mut file = match fs::File::create(find_git_root()?.join(".gitignore")) {
                 Ok(file) => file,
                 Err(err) => {
-                    return Err(io::Error::new(
-                        io::ErrorKind::Other,
-                        format!("Failed to create .gitignore with err: {:#?}", err),
-                    ))
+                    return Err(io::Error::other(format!(
+                        "Failed to create .gitignore with err: {err:#?}"
+                    )))
                 }
             };
             match writeln!(file, ".COMMIT_MESSAGE") {
                 Ok(_) => (),
                 Err(err) => {
-                    return Err(io::Error::new(
-                        io::ErrorKind::Other,
-                        format!("Failed to create .env with err: {:#?}", err),
-                    ))
+                    return Err(io::Error::other(format!(
+                        "Failed to create .env with err: {err:#?}"
+                    )))
                 }
             };
         }
     };
 
-    match get_message(true) {
-        Ok(message) => print_formatted_message(String::from("Commit message set:"), message),
-        Err(_) => (),
+    if let Ok(message) = get_message(true) {
+        print_formatted_message(String::from("Commit message set:"), message)
     };
 
     Ok(())
@@ -282,7 +255,8 @@ fn set_message(message_to_set: &str) -> io::Result<()> {
 
 fn print_formatted_message(message_title: String, message: String) {
     let bold_text_start = "\x1b[1m";
-    let indented_message: String = format!(r#"{message}"#)
+    let indented_message: String = message
+        .to_string()
         .lines()
         .map(|line| format!("{}{}", "    ", line))
         .collect::<Vec<String>>()
@@ -290,14 +264,11 @@ fn print_formatted_message(message_title: String, message: String) {
     let bold_text_end = "\x1b[0m";
 
     println!("{}", &message_title);
-    println!("{}{}{}", bold_text_start, indented_message, bold_text_end);
+    println!("{bold_text_start}{indented_message}{bold_text_end}");
 }
 
 fn edit_message() -> io::Result<()> {
-    let current_commit_message = match get_message(false) {
-        Ok(message) => Some(message),
-        Err(_) => None,
-    };
+    let current_commit_message = get_message(false).ok();
     match current_commit_message {
         Some(message) => match edit(&message) {
             Ok(m) => set_message(&m),
@@ -305,7 +276,7 @@ fn edit_message() -> io::Result<()> {
         },
         None => match edit(" ") {
             Ok(m) => set_message(&append_instruction_comment(&m)),
-            Err(err) => return Err(io::Error::new(io::ErrorKind::InvalidInput, err)),
+            Err(err) => Err(io::Error::new(io::ErrorKind::InvalidInput, err)),
         },
     }
 }
@@ -315,39 +286,27 @@ fn get_message(ignore_comments: bool) -> io::Result<String> {
         match read_file_extract_message(find_git_root()?.join(".COMMIT_MESSAGE")) {
             Ok(content) => {
                 if content.trim().is_empty() {
-                    Err(io::Error::new(
-                        io::ErrorKind::Other,
-                        "No commit message found",
-                    ))
+                    Err(io::Error::other("No commit message found"))
                 } else {
                     Ok(content)
                 }
             }
-            Err(err) => {
-                return Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    format!("Failed to read .env with err: {:#?}", err),
-                ))
-            }
+            Err(err) => Err(io::Error::other(format!(
+                "Failed to read .env with err: {err:#?}",
+            ))),
         }
     } else {
         match read_to_string(find_git_root()?.join(".COMMIT_MESSAGE")) {
             Ok(content) => {
                 if content.trim().is_empty() {
-                    Err(io::Error::new(
-                        io::ErrorKind::Other,
-                        "No commit message found",
-                    ))
+                    Err(io::Error::other("No commit message found"))
                 } else {
                     Ok(content)
                 }
             }
-            Err(err) => {
-                return Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    format!("Failed to read .env with err: {:#?}", err),
-                ))
-            }
+            Err(err) => Err(io::Error::other(format!(
+                "Failed to read .env with err: {err:#?}",
+            ))),
         }
     }
 }
@@ -357,30 +316,27 @@ fn clear_message(is_full_clear: bool) -> io::Result<()> {
         match fs::File::create(find_git_root()?.join(".COMMIT_MESSAGE")) {
             Ok(_) => (),
             Err(err) => {
-                return Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    format!("Failed to create .COMMIT_MESSAGE with err: {:#?}", err),
-                ))
+                return Err(io::Error::other(format!(
+                    "Failed to create .COMMIT_MESSAGE with err: {err:#?}",
+                )))
             }
         };
         set_message(&append_instruction_comment(""))
     } else {
         let comments = match read_file_extract_comments(find_git_root()?.join(".COMMIT_MESSAGE")) {
-            Ok(file) => &append_instruction_comment(&format!(r#"{file}"#)),
+            Ok(file) => &append_instruction_comment(&file.to_string()),
             Err(err) => {
-                return Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    format!("Failed to read .COMMIT_MESSAGE with err: {:#?}", err),
-                ))
+                return Err(io::Error::other(format!(
+                    "Failed to read .COMMIT_MESSAGE with err: {err:#?}",
+                )))
             }
         };
         let mut file = match fs::File::create(find_git_root()?.join(".COMMIT_MESSAGE")) {
             Ok(file) => file,
             Err(err) => {
-                return Err(io::Error::new(
-                    io::ErrorKind::Other,
-                    format!("Failed to create .COMMIT_MESSAGE with err: {:#?}", err),
-                ))
+                return Err(io::Error::other(format!(
+                    "Failed to create .COMMIT_MESSAGE with err: {err:#?}",
+                )))
             }
         };
         match write!(file, r#"{comments}"#) {
@@ -401,18 +357,12 @@ fn append_instruction_comment(message: &str) -> String {
 }
 
 fn read_file_extract_message(file_path: std::path::PathBuf) -> Result<String> {
-    let file = match File::open(file_path) {
-        Ok(file) => file,
-        Err(err) => return Err(err),
-    };
+    let file = File::open(file_path)?;
     let reader = BufReader::new(file);
     let mut content = String::new();
 
     for line in reader.lines() {
-        let line = match line {
-            Ok(text) => text,
-            Err(err) => return Err(err),
-        };
+        let line = line?;
         if !line.is_empty() && !line.trim().starts_with('#') {
             content.push_str(&line);
             content.push('\n');
@@ -423,19 +373,13 @@ fn read_file_extract_message(file_path: std::path::PathBuf) -> Result<String> {
 }
 
 fn read_file_extract_comments(file_path: std::path::PathBuf) -> Result<String> {
-    let file = match File::open(file_path) {
-        Ok(file) => file,
-        Err(err) => return Err(err),
-    };
+    let file = File::open(file_path)?;
     let reader = BufReader::new(file);
     let mut content = String::new();
 
     let mut is_end_of_user_added_comments = false;
     for line in reader.lines() {
-        let line = match line {
-            Ok(text) => text,
-            Err(err) => return Err(err),
-        };
+        let line = line?;
         if line.starts_with("# Enter/edit the commit message for your changes.") {
             is_end_of_user_added_comments = true;
         }
@@ -449,10 +393,7 @@ fn read_file_extract_comments(file_path: std::path::PathBuf) -> Result<String> {
 }
 
 fn commit(contents: Option<String>) -> io::Result<()> {
-    let commit_message = match get_message(true) {
-        Ok(message) => message,
-        Err(err) => return Err(err),
-    };
+    let commit_message = get_message(true)?;
 
     let files_to_add = match contents {
         Some(x) => x,
@@ -465,14 +406,13 @@ fn commit(contents: Option<String>) -> io::Result<()> {
     {
         Ok(_) => (),
         Err(err) => {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                format!("Failed to add files with err: {:#?}", err),
-            ))
+            return Err(io::Error::other(format!(
+                "Failed to add files with err: {err:#?}",
+            )))
         }
     };
 
-    let mut commit_message_header_and_body = commit_message.split("\n").into_iter();
+    let mut commit_message_header_and_body = commit_message.split("\n");
 
     //can unwrap header since we know there is some text present, if empty, function would have returned err already and would have not been able to reach this far downstream.
     let commit_message_header = commit_message_header_and_body.next().unwrap();
@@ -485,7 +425,7 @@ fn commit(contents: Option<String>) -> io::Result<()> {
     let mut commit_command_args = Vec::new();
     commit_command_args.push("commit");
     commit_command_args.push("-m");
-    commit_command_args.push(&commit_message_header);
+    commit_command_args.push(commit_message_header);
     if !commit_message_body.is_empty() {
         commit_command_args.push("-m");
         commit_command_args.push(&commit_message_body);
@@ -494,17 +434,16 @@ fn commit(contents: Option<String>) -> io::Result<()> {
     let commit_output = match Command::new("git").args(commit_command_args).output() {
         Ok(output) => output,
         Err(err) => {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                format!("Failed to execute git commit: {:#?}", err),
-            ))
+            return Err(io::Error::other(format!(
+                "Failed to execute git commit: {err:#?}",
+            )))
         }
     };
 
     // Print stdout
     if let Ok(stdout_str) = String::from_utf8(commit_output.stdout.clone()) {
         if !stdout_str.is_empty() {
-            print!("{}", stdout_str);
+            print!("{stdout_str}");
             let _ = stdout().flush();
         }
     }
@@ -512,15 +451,14 @@ fn commit(contents: Option<String>) -> io::Result<()> {
     // Print stderr (this includes pre-commit hook output)
     if let Ok(stderr_str) = String::from_utf8(commit_output.stderr.clone()) {
         if !stderr_str.is_empty() {
-            eprint!("{}", stderr_str);
+            eprint!("{stderr_str}");
             let _ = stderr().flush();
         }
     }
 
     // Check if the commit was successful
     if !commit_output.status.success() {
-        return Err(io::Error::new(
-            io::ErrorKind::Other,
+        return Err(io::Error::other(
             "Git commit failed (possibly due to pre-commit hooks)",
         ));
     }
@@ -539,10 +477,7 @@ fn commit(contents: Option<String>) -> io::Result<()> {
 }
 
 fn push(contents: Option<String>) -> io::Result<()> {
-    let commit_message = match get_message(true) {
-        Ok(message) => message,
-        Err(err) => return Err(err),
-    };
+    let commit_message = get_message(true)?;
 
     let files_to_push = match contents {
         Some(x) => x,
@@ -555,14 +490,13 @@ fn push(contents: Option<String>) -> io::Result<()> {
     {
         Ok(_) => (),
         Err(err) => {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                format!("Failed to add files with err: {:#?}", err),
-            ))
+            return Err(io::Error::other(format!(
+                "Failed to add files with err: {err:#?}",
+            )))
         }
     };
 
-    let mut commit_message_header_and_body = commit_message.split("\n").into_iter();
+    let mut commit_message_header_and_body = commit_message.split("\n");
 
     //can unwrap header since we know there is some text present, if empty, function would have returned err already and would have not been able to reach this far downstream.
     let commit_message_header = commit_message_header_and_body.next().unwrap();
@@ -575,7 +509,7 @@ fn push(contents: Option<String>) -> io::Result<()> {
     let mut commit_command_args = Vec::new();
     commit_command_args.push("commit");
     commit_command_args.push("-m");
-    commit_command_args.push(&commit_message_header);
+    commit_command_args.push(commit_message_header);
     if !commit_message_body.is_empty() {
         commit_command_args.push("-m");
         commit_command_args.push(&commit_message_body);
@@ -584,17 +518,16 @@ fn push(contents: Option<String>) -> io::Result<()> {
     let commit_output = match Command::new("git").args(commit_command_args).output() {
         Ok(output) => output,
         Err(err) => {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                format!("Failed to execute git commit: {:#?}", err),
-            ))
+            return Err(io::Error::other(format!(
+                "Failed to execute git commit: {err:#?}",
+            )))
         }
     };
 
     // Print stdout
     if let Ok(stdout_str) = String::from_utf8(commit_output.stdout.clone()) {
         if !stdout_str.is_empty() {
-            print!("{}", stdout_str);
+            print!("{stdout_str}");
             let _ = stdout().flush();
         }
     }
@@ -602,15 +535,14 @@ fn push(contents: Option<String>) -> io::Result<()> {
     // Print stderr (this includes pre-commit hook output)
     if let Ok(stderr_str) = String::from_utf8(commit_output.stderr.clone()) {
         if !stderr_str.is_empty() {
-            eprint!("{}", stderr_str);
+            eprint!("{stderr_str}");
             let _ = stderr().flush();
         }
     }
 
     // Check if the commit was successful
     if !commit_output.status.success() {
-        return Err(io::Error::new(
-            io::ErrorKind::Other,
+        return Err(io::Error::other(
             "Git commit failed (possibly due to pre-commit hooks)",
         ));
     }
@@ -627,12 +559,9 @@ fn push(contents: Option<String>) -> io::Result<()> {
 
     match Command::new("git").arg("push").status() {
         Ok(_) => Ok(()),
-        Err(err) => {
-            return Err(io::Error::new(
-                io::ErrorKind::Other,
-                format!("Failed to push changes with err: {:#?}", err),
-            ))
-        }
+        Err(err) => Err(io::Error::other(format!(
+            "Failed to push changes with err: {err:#?}"
+        ))),
     }
 }
 
