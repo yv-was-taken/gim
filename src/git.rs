@@ -96,7 +96,6 @@ pub fn commit(contents: Option<String>) -> io::Result<()> {
         }
     }
 
-    println!("Committed successfully!");
     Ok(())
 }
 
@@ -168,7 +167,7 @@ pub fn push(contents: Option<String>) -> io::Result<()> {
 
     // Run git push
     match Command::new("git").arg("push").spawn() {
-        Ok(_) => println!("Committed and pushed successfully!"),
+        Ok(_) => {},
         Err(err) => {
             return Err(io::Error::other(format!(
                 "Failed to push with err: {err:#?}"
