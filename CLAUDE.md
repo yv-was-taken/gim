@@ -65,11 +65,48 @@ The entire application is implemented in `src/main.rs` (574 lines) with the foll
 3. **Git Integration**: Uses `std::process::Command` to execute git commands
 4. **Error Handling**: Custom error types with descriptive messages
 
-### Key Functions
+### Module Organization
+
+The codebase has been modularized for better organization:
+
+**src/main.rs** - Entry point and command parsing
+- `main()` - Entry point
+- `parse_user_input()` - Routes commands to appropriate handlers
+
+**src/config.rs** - Configuration management
+- `GimConfig` struct - Stores configuration settings
+- `load_config()` - Loads config from ~/.config/gim/config.toml
+- `save_config()` - Saves configuration
+- `parse_config()` - Parses TOML configuration
+
+**src/git.rs** - Git operations
 - `find_git_root()` - Locates the git repository root directory
-- `get_commit_message_path()` - Returns path to `.COMMIT_MESSAGE` file
-- `ensure_gitignore()` - Manages `.gitignore` entry for commit message file
-- Command handlers: `handle_set()`, `handle_edit()`, `handle_add()`, `handle_push()`, etc.
+- `commit()` - Git add and commit without push
+- `push()` - Git add, commit, and push
+
+**src/message.rs** - Message handling
+- `get_message()` - Retrieves commit message
+- `set_message()` - Sets commit message
+- `clear_message()` - Clears message (with optional full clear)
+- `edit_message()` - Opens configured editor
+- `advance_to_next_commit()` - Advances to next planned commit
+- `append_instruction_comment()` - Adds help comments
+
+**src/display.rs** - Display functions
+- `display_status()` - Shows full status with git status
+- `display_enhanced_commit_status()` - Shows formatted current commit
+- `display_next_commits()` - Shows upcoming commits
+- `display_full_status()` - Shows complete .COMMIT_MESSAGE file
+
+**src/commands.rs** - Command handlers
+- `handle_config_command()` - Config viewing/editing
+- `handle_add_command()` - Adding to messages
+- `handle_status_command()` - Status display
+- `handle_reorder_command()` - Interactive reordering
+- `help()` - Help documentation
+
+**src/integration.rs** - LLM integration
+- `handle_integrate_command()` - Auto-adds gim docs to LLM files
 
 ### Command Flow
 1. **gim set**: Writes message to `.COMMIT_MESSAGE`
