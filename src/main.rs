@@ -44,7 +44,7 @@ fn parse_user_input(command_input: &String, args: &[String]) -> io::Result<()> {
                     .unwrap_or_default();
 
             set_message(
-                &append_instruction_comment(&(message + &user_added_comments)),
+                &append_instruction_comment(&(message + "\n" + &user_added_comments)),
                 true,
             )
         }
