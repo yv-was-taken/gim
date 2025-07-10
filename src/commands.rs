@@ -368,7 +368,7 @@ pub fn add_title(new_title: &str) -> io::Result<()> {
         format!("{updated_message}\n{current_comments}")
     };
 
-    set_message(&append_instruction_comment(&message_with_comments), true)
+    set_message(&append_instruction_comment(&message_with_comments), false)
 }
 
 pub fn add_description(description: &str) -> io::Result<()> {
@@ -393,7 +393,7 @@ pub fn add_description(description: &str) -> io::Result<()> {
         format!("{updated_message}\n{current_comments}")
     };
 
-    set_message(&append_instruction_comment(&message_with_comments), true)
+    set_message(&append_instruction_comment(&message_with_comments), false)
 }
 
 pub fn add_next_commit_message(message: &str) -> io::Result<()> {
@@ -402,7 +402,7 @@ pub fn add_next_commit_message(message: &str) -> io::Result<()> {
         Err(_) => {
             // If no commit message exists, create a default one
             let default_msg = append_instruction_comment("");
-            set_message(&default_msg, true)?;
+            set_message(&default_msg, false)?;
             default_msg
         }
     };
@@ -432,7 +432,7 @@ pub fn add_next_commit_message(message: &str) -> io::Result<()> {
     }
 
     let updated_content = append_instruction_comment(&new_lines.join("\n"));
-    set_message(&updated_content, true)
+    set_message(&updated_content, false)
 }
 
 pub fn find_next_commit_number(content: &str) -> usize {
