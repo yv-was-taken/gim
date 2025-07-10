@@ -111,11 +111,22 @@ pub fn get_message(ignore_comments: bool) -> io::Result<String> {
 
 pub fn clear_message(is_full_clear: bool) -> io::Result<()> {
     if is_full_clear {
-        match fs::remove_file(find_git_root()?.join(".COMMIT_MESSAGE")) {
+        // Full clear should create a file with just the comment template
+        let mut file = match fs::File::create(find_git_root()?.join(".COMMIT_MESSAGE")) {
+            Ok(file) => file,
+            Err(err) => {
+                return Err(io::Error::new(
+                    io::ErrorKind::InvalidInput,
+                    format!("failed to clear .COMMIT_MESSAGE file: {err}"),
+                ))
+            }
+        };
+
+        match write!(file, "{}", append_instruction_comment("")) {
             Ok(_) => Ok(()),
             Err(err) => Err(io::Error::new(
                 io::ErrorKind::InvalidInput,
-                format!("failed to clear .COMMIT_MESSAGE file: {err}"),
+                format!("failed to write to .COMMIT_MESSAGE file: {err}"),
             )),
         }
     } else {
