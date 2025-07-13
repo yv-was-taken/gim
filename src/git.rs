@@ -157,14 +157,30 @@ pub fn push(contents: Option<String>) -> io::Result<()> {
     }
 
     // Run git push
-    match Command::new("git").arg("push").spawn() {
-        Ok(_) => {}
+    let mut push_child = match Command::new("git").arg("push").spawn() {
+        Ok(child) => child,
         Err(err) => {
             return Err(io::Error::other(format!(
-                "Failed to push with err: {err:#?}"
+                "Failed to run git push: {err}"
             )))
         }
+    };
+
+    // Wait for git push to complete
+    let push_status = match push_child.wait() {
+        Ok(status) => status,
+        Err(err) => {
+            return Err(io::Error::other(format!(
+                "Failed to wait for git push: {err}"
+            )))
+        }
+    };
+
+    // Check if push succeeded
+    if !push_status.success() {
+        return Err(io::Error::other("Git push failed"));
     }
 
+    println!("Changes pushed successfully.");
     Ok(())
 }
