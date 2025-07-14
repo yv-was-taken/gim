@@ -76,6 +76,30 @@ This project uses `gim` for commit-driven development. When working with this co
 - **Structured commits**: Use clear, descriptive commit titles with optional detailed descriptions
 - **Incremental progress**: Make small, focused commits that build toward larger features
 
+### Following Planned Commits Workflow
+When working through planned commits (NEXT-N items):
+
+1. **Check current status**: Run `gim status` to see the current commit and all planned commits
+2. **Work on current commit**: Implement the feature/fix described in the current commit message
+3. **Commit when done**: Use `gim commit` to commit the completed work
+4. **Advance to next**: After committing, the next planned commit (NEXT-1) automatically becomes current
+5. **Repeat the cycle**: Continue implementing each planned commit in sequence
+
+Example workflow:
+```bash
+# View current and planned commits
+gim status
+
+# Work on the current commit task...
+# (implement the feature described)
+
+# Commit the completed work
+gim commit
+
+# The NEXT-1 commit is now current, ready to work on
+gim status
+```
+
 ### Configuration
 - Run `gim config` to view current settings
 - Run `gim config edit` to customize behavior (default editor, verbosity, etc.)
@@ -86,6 +110,63 @@ This project uses `gim` for commit-driven development. When working with this co
 - Use the upcoming commits (NEXT-N) as a roadmap for implementation
 - When approaching issues, break them down into planned commits using `gim add --next`
 - Prefer multiple small commits over large monolithic ones
+- Follow the planned commits sequentially - each commit builds on the previous work
+
+### LLM Instructions for Task Planning
+When creating a todo list or planning tasks:
+- **Ask the user**: "Would you like me to add these tasks as planned commits using `gim add --next`?"
+- If yes, use `gim add --next "commit message"` for each major task
+- This creates a commit-driven roadmap that both you and the user can follow
+- The planned commits will appear in `gim status` as NEXT-N items
+
+Example interaction:
+```
+User: "Help me refactor the authentication system"
+LLM: "I'll help refactor the authentication system. Here's my planned approach:
+1. Extract auth logic into separate module
+2. Add JWT token validation
+3. Implement refresh token mechanism
+4. Update tests for new auth flow
+
+Would you like me to add these as planned commits using `gim add --next`?"
+```
+
+### LLM Productivity Enhancements
+
+#### Periodic Status Checks
+- Run `gim status` at the start of each conversation to understand current context
+- Check status periodically during long tasks to stay aligned with the plan
+- Use status checks before and after making significant changes
+
+#### Commit Message Best Practices
+When writing commit messages with gim:
+- Use imperative mood: "Add feature" not "Added feature"
+- Keep titles under 50 characters when possible
+- Use `gim add --desc` for detailed explanations of complex changes
+- Include "why" in descriptions, not just "what"
+
+Example:
+```bash
+gim set "Add user authentication middleware"
+gim add --desc "Implements JWT-based authentication to secure API endpoints. This addresses the security requirement from issue #123."
+```
+
+#### Working with Partial Progress
+- If interrupted mid-task, use `gim add --desc` to document progress
+- Add TODOs or notes about what remains using `gim add --desc "TODO: ..."`
+- This preserves context for resuming work later
+
+#### Error Recovery Workflow
+When encountering build/test failures:
+1. Document the error in the current commit: `gim add --desc "ERROR: [error details]"`
+2. Fix the issue
+3. Update the commit message to reflect the fix
+4. This creates a useful history of problem-solving
+
+#### Multi-Session Context
+- At conversation end, run `gim status` to show the user their current state
+- Suggest using `gim add --next` for any unfinished work
+- This helps maintain continuity across LLM sessions
 "#;
 
     // Append the gim section to the file
