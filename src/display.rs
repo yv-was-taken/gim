@@ -10,11 +10,8 @@ pub fn display_status() -> io::Result<()> {
     display_next_commits()?;
 
     // Show git status
-    match Command::new("git").arg("status").spawn() {
-        Ok(_) => {
-            println!("\n");
-            Ok(())
-        }
+    match Command::new("git").arg("status").status() {
+        Ok(_) => Ok(()),
         Err(err) => Err(io::Error::other(format!(
             "Failed to retrieve status with err: {err:#?}"
         ))),
