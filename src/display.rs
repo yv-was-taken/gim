@@ -11,7 +11,10 @@ pub fn display_status() -> io::Result<()> {
 
     // Show git status
     match Command::new("git").arg("status").spawn() {
-        Ok(_) => Ok(()),
+        Ok(_) => {
+            println!("\n");
+            Ok(())
+        }
         Err(err) => Err(io::Error::other(format!(
             "Failed to retrieve status with err: {err:#?}"
         ))),
