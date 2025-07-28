@@ -132,7 +132,6 @@ pub fn handle_reorder_command() -> io::Result<()> {
 
     println!("\nReorder options:");
     println!("  Enter new order as numbers separated by spaces (e.g., '2 1 3')");
-    println!("  Or enter 'c' to comment out a commit (e.g., 'c 2' to comment out commit 2)");
     println!("  Or enter 'cancel' to abort");
     print!("New order: ");
 
@@ -154,35 +153,6 @@ pub fn handle_reorder_command() -> io::Result<()> {
         return Ok(());
     }
 
-    // Handle comment command
-    if input.starts_with("c ") {
-        let parts: Vec<&str> = input.split_whitespace().collect();
-        if parts.len() == 2 {
-            if let Ok(index) = parts[1].parse::<usize>() {
-                if index > 0 && index <= next_commits.len() {
-                    let (_, message) = &next_commits[index - 1];
-                    println!("Commenting out: {message}");
-
-                    // Remove the commit from next_commits and add as comment
-                    let commented_commit = next_commits.remove(index - 1);
-
-                    // Rebuild file content
-                    rebuild_commit_file_with_reorder(
-                        &other_lines,
-                        &next_commits,
-                        Some(&format!("# COMMENTED: {}", commented_commit.1)),
-                    )?;
-                    println!("Commit commented out successfully.");
-                    return Ok(());
-                }
-            }
-        }
-        println!(
-            "Invalid comment command. Use 'c <number>' where number is 1-{}",
-            next_commits.len()
-        );
-        return Ok(());
-    }
 
     // Handle reorder
     let new_order: std::result::Result<Vec<usize>, _> = input
@@ -220,7 +190,7 @@ pub fn handle_reorder_command() -> io::Result<()> {
             }
 
             // Rebuild file
-            rebuild_commit_file_with_reorder(&other_lines, &reordered_commits, None)?;
+            rebuild_commit_file_with_reorder(&other_lines, &reordered_commits)?;
 
             println!("Commits reordered successfully!");
             println!("New order:");
@@ -239,7 +209,6 @@ pub fn handle_reorder_command() -> io::Result<()> {
 pub fn rebuild_commit_file_with_reorder(
     other_lines: &[&str],
     next_commits: &[(usize, String)],
-    additional_comment: Option<&str>,
 ) -> io::Result<()> {
     let mut new_content = String::new();
 
@@ -260,11 +229,6 @@ pub fn rebuild_commit_file_with_reorder(
         }
     }
 
-    // Add additional comment if provided
-    if let Some(comment) = additional_comment {
-        new_content.push_str(comment);
-        new_content.push('\n');
-    }
 
     // Add renumbered next commits
     for (i, (_, message)) in next_commits.iter().enumerate() {
@@ -552,7 +516,6 @@ pub fn help() -> io::Result<()> {
 
 - Interactive reordering of upcoming commits. Allows you to:
   - Reorder commits by entering new positions (e.g., '2 1 3')
-  - Comment out commits with 'c <number>' (e.g., 'c 2')
   - Cancel with 'cancel'
 
 ### `gim integrate`

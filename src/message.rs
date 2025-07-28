@@ -148,17 +148,13 @@ pub fn append_instruction_comment(message: &str) -> String {
 # Enter/edit the commit message for your changes.
 # Lines starting with '#' are considered comments, therefore are ignored, and will not be cleared after pushing commits.
 #
-# Special comment keywords for commit planning:
+# keyword functionality for commit planning:
 #   NEXT-N: <message>    - Planned upcoming commits that auto-advance after current commit
 #                          Numbers are automatically managed, use 'gim add --next' to add
-#                          Use 'gim reorder' to reorder or comment out planned commits
-#   COMMENTED: <message> - Previously planned commits that were commented out for safekeeping
-#                          These won't auto-advance but are preserved for reference
-#
-# Examples:
+#                          Use 'gim reorder' to reorder planned commits
+# Example:
 #   # NEXT-1: implement user registration
 #   # NEXT-2: add password validation
-#   # COMMENTED: old feature that was deprioritized
 "#,
         message.trim()
     )

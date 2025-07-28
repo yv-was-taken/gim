@@ -109,7 +109,6 @@ Opens the configuration file in your editor.
 #### `gim reorder`
 Interactive reordering of upcoming commits:
 - Reorder by entering new positions (e.g., '2 1 3')
-- Comment out commits with 'c <number>'
 - Cancel with 'cancel'
 
 #### `gim integrate`
